@@ -1,0 +1,289 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cometa API</title><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"><style>@import url(http://fonts.googleapis.com/css?family=Roboto:400,700|Inconsolata|Raleway:200);.hljs-comment,.hljs-title{color:#8e908c}.hljs-variable,.hljs-attribute,.hljs-tag,.hljs-regexp,.ruby .hljs-constant,.xml .hljs-tag .hljs-title,.xml .hljs-pi,.xml .hljs-doctype,.html .hljs-doctype,.css .hljs-id,.css .hljs-class,.css .hljs-pseudo{color:#c82829}.hljs-number,.hljs-preprocessor,.hljs-pragma,.hljs-built_in,.hljs-literal,.hljs-params,.hljs-constant{color:#f5871f}.ruby .hljs-class .hljs-title,.css .hljs-rules .hljs-attribute{color:#eab700}.hljs-string,.hljs-value,.hljs-inheritance,.hljs-header,.ruby .hljs-symbol,.xml .hljs-cdata{color:#718c00}.css .hljs-hexcolor{color:#3e999f}.hljs-function,.python .hljs-decorator,.python .hljs-title,.ruby .hljs-function .hljs-title,.ruby .hljs-title .hljs-keyword,.perl .hljs-sub,.javascript .hljs-title,.coffeescript .hljs-title{color:#4271ae}.hljs-keyword,.javascript .hljs-function{color:#8959a8}.hljs{display:block;background:white;color:#4d4d4c;padding:.5em}.coffeescript .javascript,.javascript .xml,.tex .hljs-formula,.xml .javascript,.xml .vbscript,.xml .css,.xml .hljs-cdata{opacity:.5}body{color:black;background:white;font-family:'Roboto',Helvetica,sans-serif;font-size:14px;line-height:1.42}header{border-bottom:1px solid #f2f2f2;margin-bottom:12px}h1,h2,h3,h4,h5{color:black;margin:12px 0}h1 .permalink,h2 .permalink,h3 .permalink,h4 .permalink,h5 .permalink{margin-left:6px;opacity:0;transition:opacity .25s ease}h1:hover .permalink,h2:hover .permalink,h3:hover .permalink,h4:hover .permalink,h5:hover .permalink{opacity:1}h1{font-family:'Raleway',Helvetica,sans-serif;font-size:36px;font-weight:500}h2{font-family:'Raleway',Helvetica,sans-serif;font-size:30px;font-weight:500}h3{font-size:100%;text-transform:uppercase}h5{font-size:100%;font-weight:normal}p{margin:0 0 10px}p.choices{line-height:1.6}a{color:#428bca;text-decoration:none}li p{margin:0}dl dt{float:left;width:160px;clear:left;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}dl dd{margin-left:180px}blockquote{color:rgba(0,0,0,0.5);font-size:15.5px;padding:10px 20px;margin:12px 0;border-left:5px solid #e8e8e8}blockquote p:last-child{margin-bottom:0}pre{background-color:#f5f5f5;padding:12px;border:1px solid #cfcfcf;border-radius:6px;overflow:auto}pre code{background-color:transparent;padding:0;border:none}code{color:#444;background-color:#f5f5f5;font-family:'Inconsolata',monospace;padding:1px 4px;border:1px solid #cfcfcf;border-radius:3px}ul,ol{padding-left:2em}table{border-collapse:collapse;border-spacing:0;margin-bottom:12px}table tr:nth-child(2n){background-color:#fafafa}table th,table td{padding:6px 12px;border:1px solid #d9d9d9}.note,.warning{padding:.3em 1em;margin:1em 0;border-radius:2px;font-size:90%}.note h1,.warning h1,.note h2,.warning h2,.note h3,.warning h3,.note h4,.warning h4,.note h5,.warning h5,.note h6,.warning h6{font-family:'Raleway',Helvetica,sans-serif;font-size:135%;font-weight:500}.note p,.warning p{margin:.5em 0}.note{color:black;background-color:#f0f6fb;border-left:4px solid #428bca}.note h1,.note h2,.note h3,.note h4,.note h5,.note h6{color:#428bca}.warning{color:black;background-color:#fbf1f0;border-left:4px solid #c9302c}.warning h1,.warning h2,.warning h3,.warning h4,.warning h5,.warning h6{color:#c9302c}nav{position:fixed;top:24px;bottom:0;overflow-y:auto}nav .resource-group{padding:0}nav .resource-group .heading{position:relative}nav .resource-group .heading .chevron{position:absolute;top:12px;right:12px;opacity:.5}nav .resource-group .heading a{display:block;color:black;opacity:.7;border-left:2px solid transparent;margin:0}nav .resource-group .heading a:hover{border-left:2px solid black}nav ul{list-style-type:none;padding-left:0}nav ul a{display:block;font-size:13px;color:rgba(0,0,0,0.7);padding:8px 12px;border-top:1px solid #d9d9d9;border-left:2px solid transparent;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}nav ul a:hover{border-left:2px solid black}nav ul>li{margin:0}nav ul>li:first-child{margin-top:-12px}nav ul>li:last-child{margin-bottom:-12px}nav ul ul a{padding-left:24px}nav ul ul li{margin:0}nav ul ul li:first-child{margin-top:0}nav ul ul li:last-child{margin-bottom:0}nav>div>div>ul>li:first-child>a{border-top:none}.preload *{transition:none !important}.pull-left{float:left}.pull-right{float:right}.badge{display:inline-block;float:right;min-width:10px;min-height:14px;padding:3px 7px;font-size:12px;color:#000;background-color:#f2f2f2;border-radius:10px;margin-top:-2px;margin-bottom:-2px}.badge.get{color:#70bbe1;background-color:#d9edf7}.badge.head{color:#70bbe1;background-color:#d9edf7}.badge.options{color:#70bbe1;background-color:#d9edf7}.badge.put{color:#f0db70;background-color:#fcf8e3}.badge.patch{color:#f0db70;background-color:#fcf8e3}.badge.post{color:#93cd7c;background-color:#dff0d8}.badge.delete{color:#ce8383;background-color:#f2dede}.collapse-button{float:right}.collapse-button .close{display:none;color:#428bca;cursor:pointer}.collapse-button .open{color:#428bca;cursor:pointer}.collapse-button.show .close{display:inline}.collapse-button.show .open{display:none}.collapse-content{max-height:0;overflow:hidden;transition:max-height .3s ease-in-out}nav{width:220px}.container{max-width:940px;margin-left:auto;margin-right:auto}.container .row .content{margin-left:244px;width:696px}.container .row:after{content:'';display:block;clear:both}.container-fluid nav{width:22%}.container-fluid .row .content{margin-left:24%;width:76%}@media (max-width:1200px){nav{width:200px}.container{max-width:840px}.container .row .content{margin-left:224px;width:606px}}@media (max-width:992px){nav{width:170px}.container{max-width:720px}.container .row .content{margin-left:194px;width:526px}}@media (max-width:768px){nav{display:none}.container{width:95%;max-width:none}.container .row .content,.container-fluid .row .content{margin-left:auto;margin-right:auto;width:95%}}.back-to-top{position:fixed;z-index:1;bottom:0;right:24px;padding:4px 8px;color:rgba(0,0,0,0.5);background-color:#f2f2f2;text-decoration:none !important;border-top:1px solid #d9d9d9;border-left:1px solid #d9d9d9;border-right:1px solid #d9d9d9;border-top-left-radius:3px;border-top-right-radius:3px}.resource-group{padding:12px;margin-bottom:12px;background-color:white;border:1px solid #d9d9d9;border-radius:6px}.resource-group h2.group-heading,.resource-group .heading a{padding:12px;margin:-12px -12px 12px -12px;background-color:#f2f2f2;border-bottom:1px solid #d9d9d9;border-top-left-radius:6px;border-top-right-radius:6px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}nav .resource-group .heading a{margin-bottom:0}nav .resource-group .collapse-content{padding:0}.action{margin-bottom:12px;padding:12px 12px 0 12px;overflow:hidden;border:1px solid transparent;border-radius:6px}.action h4.action-heading{padding:12px;margin:-12px -12px 12px -12px;border-bottom:1px solid transparent;border-top-left-radius:6px;border-top-right-radius:6px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.action h4.action-heading .name{float:right;font-weight:normal}.action h4.action-heading .method{padding:6px 12px;margin-right:12px;border-radius:3px}.action h4.action-heading .method.get{color:#fff;background-color:#337ab7}.action h4.action-heading .method.head{color:#fff;background-color:#337ab7}.action h4.action-heading .method.options{color:#fff;background-color:#337ab7}.action h4.action-heading .method.put{color:#fff;background-color:#ed9c28}.action h4.action-heading .method.patch{color:#fff;background-color:#ed9c28}.action h4.action-heading .method.post{color:#fff;background-color:#5cb85c}.action h4.action-heading .method.delete{color:#fff;background-color:#d9534f}.action h4.action-heading code{color:#444;background-color:#f5f5f5;border-color:#cfcfcf;font-weight:normal}.action dl.inner{padding-bottom:2px}.action .title{border-bottom:1px solid white;margin:0 -12px -1px -12px;padding:12px}.action.get{border-color:#bce8f1}.action.get h4.action-heading{color:#337ab7;background:#d9edf7;border-bottom-color:#bce8f1}.action.head{border-color:#bce8f1}.action.head h4.action-heading{color:#337ab7;background:#d9edf7;border-bottom-color:#bce8f1}.action.options{border-color:#bce8f1}.action.options h4.action-heading{color:#337ab7;background:#d9edf7;border-bottom-color:#bce8f1}.action.post{border-color:#d6e9c6}.action.post h4.action-heading{color:#5cb85c;background:#dff0d8;border-bottom-color:#d6e9c6}.action.put{border-color:#faebcc}.action.put h4.action-heading{color:#ed9c28;background:#fcf8e3;border-bottom-color:#faebcc}.action.patch{border-color:#faebcc}.action.patch h4.action-heading{color:#ed9c28;background:#fcf8e3;border-bottom-color:#faebcc}.action.delete{border-color:#ebccd1}.action.delete h4.action-heading{color:#d9534f;background:#f2dede;border-bottom-color:#ebccd1}</style></head><body class="preload"><a href="#top" class="text-muted back-to-top"><i class="fa fa-toggle-up"></i>&nbsp;Back to top</a><div class="container"><div class="row"><nav><div class="resource-group"><div class="heading"><div class="chevron"><i class="open fa fa-angle-down"></i></div><a href="#top">Overview</a></div><div class="collapse-content"><ul><li><a href="#header-mode-of-operation">Mode of Operation</a></li><li><a href="#header-messages-to-device">Messages to Device</a></li><li><a href="#header-data-events">Data Events</a></li><li><a href="#header-websockets">Websockets</a></li><li><a href="#header-wire-protocol">Wire Protocol</a></li><li><a href="#header-cometa-applications">Cometa Applications</a></li><li><a href="#header-base-url">Base URL</a></li><li><a href="#header-autenthication">Autenthication</a></li></ul></div></div><div class="resource-group"><div class="heading"><div class="chevron"><i class="open fa fa-angle-down"></i></div><a href="#devices">Devices</a></div><div class="collapse-content"><ul><li><a href="#header-important-info">Important Info</a></li><li><a href="#devices-device">Device</a><ul><li><a href="#devices-device-post"><span class="badge post"><i class="fa fa-plus"></i></span>Attach a Device</a></li><li><a href="#devices-device-get"><span class="badge get"><i class="fa fa-arrow-down"></i></span>Device presence info</a></li><li><a href="#devices-device-delete"><span class="badge delete"><i class="fa fa-times"></i></span>Detach a Device</a></li></ul></li><li><a href="#devices-send-to-device-post"><span class="badge post"><i class="fa fa-plus"></i></span>Send a message to a device</a></li></ul></div></div><div class="resource-group"><div class="heading"><div class="chevron"><i class="open fa fa-angle-down"></i></div><a href="#websockets-1">Websockets</a></div><div class="collapse-content"><ul></ul></div></div><div class="resource-group"><div class="heading"><div class="chevron"><i class="open fa fa-angle-down"></i></div><a href="#admin">Admin</a></div><div class="collapse-content"><ul></ul></div></div><p style="text-align: center; word-wrap: break-word;"><a href="http://www.cometa.io">http://www.cometa.io</a></p></nav><div class="content"><header><h1 id="top">Cometa API</h1></header><p>This document describes the <a href="http://www.cometa.io">Cometa</a> HTTP REST and Websockets API to use in a Web or mobile application to interact with remote IoT devices using the Cometa platform.</p>
+<h2 id="header-mode-of-operation">Mode of Operation <a class="permalink" href="#header-mode-of-operation" aria-hidden="true">¶</a></h2>
+<p>Cometa is an edge server mediating communication between applications and remote devices. Typical communication needs of a IoT device include responding to a message request from an application and sending event data to a server. Both paradigms are covered in the Cometa API.</p>
+<p>Devices connect to Cometa using the <code>attach</code> HTTP method to establish a permanent connection to the Cometa server. Once a device is attached, Cometa provides the underlying transport for both message exchange according to a RPC (Remote Procedure Call) pattern, and to establish a data pipe used by the devices to send asynchronous events data upstream.</p>
+<blockquote>
+<p>Cometa follows the HTTP chunked transfer encoding format of the <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html">HTTP 1.1 specifications</a>.</p>
+</blockquote>
+<h2 id="header-messages-to-device">Messages to Device <a class="permalink" href="#header-messages-to-device" aria-hidden="true">¶</a></h2>
+<p>After attaching to Cometa, a device starts a listening loop to receive RPC requests from Cometa. A message sent to a device is assumed to include a command and some parameters, and is also expected to receive a message response from the device.</p>
+<p>Applications use the <code>send</code> method to invoke a RPC to a remote device, with the message body containing the request and the parameters. Once Cometa receives an RPC message for the device from the application, it relays the request to the device and expects a synchronous reply to the message, following a typical RPC (Remote Procedure Call) pattern. The reply received from the device is then relayed back to the requesting application as response to the RPC invocation.</p>
+<div class="note">
+<p>Developers can take advantage of the higher level C/C++ library in the <a href="http://www.cometa.io/docs">Cometa Devices SDK</a> to accelerate firmware development and integration of devices in the Cometa platform.</p>
+</div>
+<h2 id="header-data-events">Data Events <a class="permalink" href="#header-data-events" aria-hidden="true">¶</a></h2>
+<p>A device can use the connection to Cometa to send asynchronous upstream data, that is not in response to a RPC invocation. For instance, to send an event notification upstream. Sensor data that are acquired periodically can also be sent to the data pipe upstream by a device at any time and not as a RPC reply.</p>
+<blockquote>
+<p>Cometa can be configured with webhooks to forward event upstream messages to an external application server or to a document database such as MongoDB.</p>
+</blockquote>
+<h2 id="header-websockets">Websockets <a class="permalink" href="#header-websockets" aria-hidden="true">¶</a></h2>
+<p>Cometa exposes a unique Websocket URL endpoint for each device attached to the server. Details on how to obtain the endpoint are decribed <a href="#websockets-1">below</a>.</p>
+<p>Once a Websocket to a device is opened, an application has a real-time, bi-directional connection with the device. The payload sent by an application
+must follow the RPC pattern. in a similar way to the HTTP <code>send</code> method. However, since the communication has been already established, the exchange happens
+in real-time, without any overhead. Also, the application receives real-time events sent upstream by the device. The events are received by a Websocket application, regardless of the presence or not of a forwarding events webhook configured in Cometa.</p>
+<h2 id="header-wire-protocol">Wire Protocol <a class="permalink" href="#header-wire-protocol" aria-hidden="true">¶</a></h2>
+<p>A device attached to Cometa has a bi-directional transport for RPC and an upstream data pipe for events, but Cometa does not enforce any wire protocol, that is left to the application.</p>
+<blockquote>
+<p>Using Cometa is straightforward to implement the <a href="http://www.jsonrpc.org">JSON-RPC</a> protocol for remote interactions with devices, and to send asynchronous data upstream as JSON objects. See the device code examples in the <a href="http://www.cometa.io/docs">Cometa Device SDK documentation</a>.</p>
+</blockquote>
+<h2 id="header-cometa-applications">Cometa Applications <a class="permalink" href="#header-cometa-applications" aria-hidden="true">¶</a></h2>
+<p>Both devices and applications use the concept of <em>application</em> both for partitioning devices into reserved areas, and for authentication purposes. A Cometa <em>application</em> provides credentials in the form of an ‘application-id’ and <code>application-secret</code>. The <code>application-id</code> is unique for the server. Cometa <em>applications</em> and their credentials are stored in the <code>/etc/cometa.conf</code> server configuration file.</p>
+<blockquote>
+<p>Each device belongs to a Cometa <em>application</em> and has a unique device ID.</p>
+</blockquote>
+<h2 id="header-base-url">Base URL <a class="permalink" href="#header-base-url" aria-hidden="true">¶</a></h2>
+<pre><code class="language-no-highlight">http://{HOST}:{PORT}/v1/</code></pre>
+<h2 id="header-autenthication">Autenthication <a class="permalink" href="#header-autenthication" aria-hidden="true">¶</a></h2>
+<p>All HTTP requests, with exception of device <code>attach</code>, need to be authenticated using the following HTTP Header:</p>
+<table>
+<thead>
+<tr>
+<th>HEADER</th>
+<th>Description</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Authorization</td>
+<td>authorization token</td>
+<td>OAuth {APPLICATION-SECRET}</td>
+</tr>
+</tbody>
+</table>
+<p>Example:</p>
+<pre><code class="language-http"><span class="hljs-attribute">Authorization</span>: <span class="hljs-string">OAuth 8ad3773142a6692b25b7</span></code></pre>
+<section id="devices" class="resource-group"><h2 class="group-heading">Devices<a href="#devices" class="permalink">&para;</a></h2><p>Interactions with devices.</p>
+<h2 id="header-important-info">Important Info <a class="permalink" href="#header-important-info" aria-hidden="true">¶</a></h2>
+<p>Devices need to be attached before they can receive RPC invocations or send events data.</p>
+<p>For a device to attach to a Cometa server only the Application ID for the application and a unique Device ID are required. In the HTTP POST to attach a Device to Cometa the HTTP authorization header is not required. This is to avoid storing the Authorization token in a device.</p>
+<p>If a Device is successfully subscribed, the response object contains the preferred heartbeat frequency in seconds, and the Epoch time of the server in the timestamp. The heartbeat frequency is only a hint and devices can decide whether to use it or to ignore it, however a heartbeat must be sent by a device to keep the connection. See details in the <a href="http://www.cometa.io/docs">Cometa Device SDK documentation</a> about the format of a heartbeat message.</p>
+<div id="devices-device" class="resource"><h3 class="resource-heading">Device<a href="#devices-device" class="permalink">&para;</a></h3><p>Device methods.</p>
+<div id="devices-device-post" class="action post"><h4 class="action-heading"><div class="name">Attach a Device</div><a href="#devices-device-post" class="method post">POST</a><code class="uri">/applications/{app_id}/devices/{device_id}</code></h4><p>Attach the device invoking the method.</p>
+<p>Once a sevice has attached to the Cometa server, the HTTP connection is reverted and persisted. Further interactions from an application follow the request/response typical of a synchronous RPC pattern.</p>
+<p>Attempts to attach a device that is already attached, is rejected by the Cometa server with a 409 Conflict HTTP status code.</p>
+<div class="title"><strong>Parameters</strong><div class="collapse-button show"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><dl class="inner"><dt>app_id</dt><dd><code>string</code>&nbsp;<span class="required">(required)</span>&nbsp;<span class="text-muted example"><strong>Example:&nbsp;</strong><span>946604ed1d971eca2879</span></span><p>The Application ID</p>
+</dd><dt>device_id</dt><dd><code>string</code>&nbsp;<span class="required">(required)</span>&nbsp;<span class="text-muted example"><strong>Example:&nbsp;</strong><span>ca375b970d037fb7fb2e</span></span><p>The Device ID</p>
+</dd></dl></div><div class="title"><strong>Request</strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>{
+    <span class="hljs-string">"platform"</span>
+}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>{
+  "<span class="hljs-attribute">msg</span>": <span class="hljs-value"><span class="hljs-string">"200 OK"</span></span>,
+  "<span class="hljs-attribute">heartbeat</span>": <span class="hljs-value"><span class="hljs-number">60</span></span>,
+  "<span class="hljs-attribute">timestamp</span>": <span class="hljs-value"><span class="hljs-number">1426274354</span>
+</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>409</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>{
+    <span class="hljs-string">"409 Conflict"</span>
+}</code></pre><div style="height: 1px;"></div></div></div></div><div id="devices-device-get" class="action get"><h4 class="action-heading"><div class="name">Device presence info</div><a href="#devices-device-get" class="method get">GET</a><code class="uri">/applications/{app_id}/devices/{device_id}</code></h4><p>Obtain information about presence and statistics of the specified device.</p>
+<p>The Device’s persistent connection to the Cometa server is maintained by the Device sending a heartbeat message to the server regularly, as specified in the Cometa server configuration. The heartbeat insures also that the port assigned in a NAT device the Device might be connected to, is not reused as result of inactivity.</p>
+<p>The heartbeat message is not propagated to the application but used only by the Cometa server to determine the Device presence.</p>
+<p>It is important to notice that when an attached device goes away abruptly without closing the connection, the Cometa server may still consider the device as attached, until an inactivity timeout occurs for lack of receiving an heartbeat from the device. The typical timeout with a heartbeat setting of 60 seconds is of 120 seconds.</p>
+<div class="title"><strong>Parameters</strong><div class="collapse-button show"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><dl class="inner"><dt>app_id</dt><dd><code>string</code>&nbsp;<span class="required">(required)</span>&nbsp;<span class="text-muted example"><strong>Example:&nbsp;</strong><span>946604ed1d971eca2879</span></span><p>The Application ID</p>
+</dd><dt>device_id</dt><dd><code>string</code>&nbsp;<span class="required">(required)</span>&nbsp;<span class="text-muted example"><strong>Example:&nbsp;</strong><span>ca375b970d037fb7fb2e</span></span><p>The Device ID</p>
+</dd></dl></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>{
+  "<span class="hljs-attribute">device_id</span>": <span class="hljs-value"><span class="hljs-string">"45F026"</span></span>,
+  "<span class="hljs-attribute">ip_address</span>": <span class="hljs-value"><span class="hljs-string">"169.237.139.216:10371"</span></span>,
+  "<span class="hljs-attribute">heartbeat</span>": <span class="hljs-value"><span class="hljs-string">"1440100577"</span></span>,
+  "<span class="hljs-attribute">info</span>": <span class="hljs-value"><span class="hljs-string">"BCMUSI14"</span></span>,
+  "<span class="hljs-attribute">stats</span>": <span class="hljs-value">{
+    "<span class="hljs-attribute">connected_at</span>": <span class="hljs-value"><span class="hljs-string">"1440095840"</span></span>,
+    "<span class="hljs-attribute">messages</span>": <span class="hljs-value"><span class="hljs-string">"12"</span></span>,
+    "<span class="hljs-attribute">errors</span>": <span class="hljs-value"><span class="hljs-string">"0"</span></span>,
+    "<span class="hljs-attribute">bytes_up</span>": <span class="hljs-value"><span class="hljs-string">"108652"</span></span>,
+    "<span class="hljs-attribute">bytes_down</span>": <span class="hljs-value"><span class="hljs-string">"4560"</span></span>,
+    "<span class="hljs-attribute">latency</span>": <span class="hljs-value"><span class="hljs-string">"2"</span></span>,
+    "<span class="hljs-attribute">websockets</span>": <span class="hljs-value"><span class="hljs-string">"0"</span>
+  </span>}
+</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>423</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>{
+    <span class="hljs-string">"Error 418 in the request: Device not attached"</span>
+}</code></pre><div style="height: 1px;"></div></div></div></div><div id="devices-device-delete" class="action delete"><h4 class="action-heading"><div class="name">Detach a Device</div><a href="#devices-device-delete" class="method delete">DELETE</a><code class="uri">/applications/{app_id}/devices/{device_id}</code></h4><p>Detach the specified device from the Cometa server.</p>
+<div class="title"><strong>Parameters</strong><div class="collapse-button show"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><dl class="inner"><dt>app_id</dt><dd><code>string</code>&nbsp;<span class="required">(required)</span>&nbsp;<span class="text-muted example"><strong>Example:&nbsp;</strong><span>946604ed1d971eca2879</span></span><p>The Application ID</p>
+</dd><dt>device_id</dt><dd><code>string</code>&nbsp;<span class="required">(required)</span>&nbsp;<span class="text-muted example"><strong>Example:&nbsp;</strong><span>ca375b970d037fb7fb2e</span></span><p>The Device ID</p>
+</dd></dl></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>{
+  "<span class="hljs-attribute">msg</span>": <span class="hljs-value"><span class="hljs-string">"200 OK"</span>
+</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>423</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>{
+    <span class="hljs-string">"Error 418 in the request: Device not attached"</span>
+}</code></pre><div style="height: 1px;"></div></div></div></div></div><div id="devices-send-to-device" class="resource"><h3 class="resource-heading">Send to Device<a href="#devices-send-to-device" class="permalink">&para;</a></h3><p>Send a message containing a request to an attached Device and receive the reply in the response.</p>
+<p>Only one request at a time can be processed by a device. A 423 Locked HTTP status code is returned if the device is still processing a previous request.</p>
+<div id="devices-send-to-device-post" class="action post"><h4 class="action-heading"><div class="name">Send a message to a device</div><a href="#devices-send-to-device-post" class="method post">POST</a><code class="uri">/applications/{app_id}/devices/{device_id}/send</code></h4><div class="title"><strong>Parameters</strong><div class="collapse-button show"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><dl class="inner"><dt>app_id</dt><dd><code>string</code>&nbsp;<span class="required">(required)</span>&nbsp;<span class="text-muted example"><strong>Example:&nbsp;</strong><span>946604ed1d971eca2879</span></span><p>The Application ID</p>
+</dd><dt>device_id</dt><dd><code>string</code>&nbsp;<span class="required">(required)</span>&nbsp;<span class="text-muted example"><strong>Example:&nbsp;</strong><span>ca375b970d037fb7fb2e</span></span><p>The Device ID</p>
+</dd></dl></div><div class="title"><strong>Request</strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>{
+  "<span class="hljs-attribute">get</span>": <span class="hljs-value"><span class="hljs-string">"compressor_power"</span>
+</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>200</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>{
+  "<span class="hljs-attribute">power</span>": <span class="hljs-value"><span class="hljs-string">"251.32"</span></span>,
+  "<span class="hljs-attribute">properties</span>": <span class="hljs-value">{
+    "<span class="hljs-attribute">ReadingType</span>": <span class="hljs-value"><span class="hljs-string">"double"</span></span>,
+    "<span class="hljs-attribute">Timezone</span>": <span class="hljs-value"><span class="hljs-string">"America/Los_Angeles"</span></span>,
+    "<span class="hljs-attribute">UnitofMeasure</span>": <span class="hljs-value"><span class="hljs-string">"Watt"</span>
+  </span>}</span>,
+  "<span class="hljs-attribute">uuid</span>": <span class="hljs-value"><span class="hljs-string">"2180322f-6999-4e89-8320-e2127ffc26d3"</span>
+</span>}</code></pre><div style="height: 1px;"></div></div></div><div class="title"><strong>Response&nbsp;&nbsp;<code>423</code></strong><div class="collapse-button"><span class="close">Hide</span><span class="open">Show</span></div></div><div class="collapse-content"><div class="inner"><h5>Headers</h5><pre><code><span class="hljs-attribute">Content-Type</span>: <span class="hljs-string">application/json</span></code></pre><div style="height: 1px;"></div><h5>Body</h5><pre><code>{
+    <span class="hljs-string">"423 Locked"</span>
+}</code></pre><div style="height: 1px;"></div></div></div></div></div></section><section id="websockets-1" class="resource-group"><h2 class="group-heading">Websockets<a href="#websockets-1" class="permalink">&para;</a></h2><p>Once a Websocket is established by a</p>
+</section><section id="admin" class="resource-group"><h2 class="group-heading">Admin<a href="#admin" class="permalink">&para;</a></h2><p>Also Markdown <em>formatted</em>. This also includes automatic “smartypants” formatting – hooray!</p>
+</section></div></div></div><p style="text-align: center;" class="text-muted">Generated by&nbsp;<a href="https://github.com/danielgtaylor/aglio" class="aglio">aglio</a>&nbsp;on 21 Aug 2015</p><script>/* eslint-env browser */
+/* eslint quotes: [2, "single"] */
+'use strict';
+
+/*
+  Determine if a string ends with another string.
+*/
+function endsWith(str, suffix) {
+    return str.indexOf(suffix, str.length - suffix.length) !== -1;
+}
+
+/*
+  Get an array [width, height] of the window.
+*/
+function getWindowDimensions() {
+  var w = window,
+      d = document,
+      e = d.documentElement,
+      g = d.body,
+      x = w.innerWidth || e.clientWidth || g.clientWidth,
+      y = w.innerHeight || e.clientHeight || g.clientHeight;
+
+  return [x, y];
+}
+
+/*
+  Collapse or show a request/response example.
+*/
+function toggleCollapseButton(event) {
+    var button = event.target.parentNode;
+    var content = button.parentNode.nextSibling;
+    var inner = content.children[0];
+
+    if (button.className.indexOf('collapse-button') === -1) {
+      // Clicked without hitting the right element?
+      return;
+    }
+
+    if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+        // Currently showing, so let's hide it
+        button.className = 'collapse-button';
+        content.style.maxHeight = '0px';
+    } else {
+        // Currently hidden, so let's show it
+        button.className = 'collapse-button show';
+        content.style.maxHeight = inner.offsetHeight + 12 + 'px';
+    }
+}
+
+/*
+  Collapse or show a navigation menu. It will not be hidden unless it
+  is currently selected or `force` has been passed.
+*/
+function toggleCollapseNav(event, force) {
+    var heading = event.target.parentNode;
+    var content = heading.nextSibling;
+    var inner = content.children[0];
+
+    if (heading.className.indexOf('heading') === -1) {
+      // Clicked without hitting the right element?
+      return;
+    }
+
+    if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+      // Currently showing, so let's hide it, but only if this nav item
+      // is already selected. This prevents newly selected items from
+      // collapsing in an annoying fashion.
+      if (force || window.location.hash && endsWith(event.target.href, window.location.hash)) {
+        content.style.maxHeight = '0px';
+      }
+    } else {
+      // Currently hidden, so let's show it
+      content.style.maxHeight = inner.offsetHeight + 12 + 'px';
+    }
+}
+
+/*
+  Refresh the page after a live update from the server. This only
+  works in live preview mode (using the `--server` parameter).
+*/
+function refresh(body) {
+    document.querySelector('body').className = 'preload';
+    document.body.innerHTML = body;
+
+    // Re-initialize the page
+    init();
+    autoCollapse();
+
+    document.querySelector('body').className = '';
+}
+
+/*
+  Determine which navigation items should be auto-collapsed to show as many
+  as possible on the screen, based on the current window height. This also
+  collapses them.
+*/
+function autoCollapse() {
+  var windowHeight = getWindowDimensions()[1];
+  var itemsHeight = 64; /* Account for some padding */
+  var itemsArray = Array.prototype.slice.call(
+    document.querySelectorAll('nav .resource-group .heading'));
+
+  // Get the total height of the navigation items
+  itemsArray.forEach(function (item) {
+    itemsHeight += item.parentNode.offsetHeight;
+  });
+
+  // Should we auto-collapse any nav items? Try to find the smallest item
+  // that can be collapsed to show all items on the screen. If not possible,
+  // then collapse the largest item and do it again. First, sort the items
+  // by height from smallest to largest.
+  var sortedItems = itemsArray.sort(function (a, b) {
+    return a.parentNode.offsetHeight - b.parentNode.offsetHeight;
+  });
+
+  while (sortedItems.length && itemsHeight > windowHeight) {
+    for (var i = 0; i < sortedItems.length; i++) {
+      // Will collapsing this item help?
+      var itemHeight = sortedItems[i].nextSibling.offsetHeight;
+      if ((itemsHeight - itemHeight <= windowHeight) || i === sortedItems.length - 1) {
+        // It will, so let's collapse it, remove its content height from
+        // our total and then remove it from our list of candidates
+        // that can be collapsed.
+        itemsHeight -= itemHeight;
+        toggleCollapseNav({target: sortedItems[i].children[0]}, true);
+        sortedItems.splice(i, 1);
+        break;
+      }
+    }
+  }
+}
+
+/*
+  Initialize the interactive functionality of the page.
+*/
+function init() {
+    var i;
+
+    // Make collapse buttons clickable
+    var buttons = document.querySelectorAll('.collapse-button');
+    for (i = 0; i < buttons.length; i++) {
+        buttons[i].onclick = toggleCollapseButton;
+
+        // Show by default? Then toggle now.
+        if (buttons[i].className.indexOf('show') !== -1) {
+            toggleCollapseButton({target: buttons[i].children[0]});
+        }
+    }
+
+    // Make nav items clickable to collapse/expand their content.
+    var navItems = document.querySelectorAll('nav .resource-group .heading');
+    for (i = 0; i < navItems.length; i++) {
+        navItems[i].onclick = toggleCollapseNav;
+
+        // Show all by default
+        toggleCollapseNav({target: navItems[i].children[0]});
+    }
+}
+
+// Initial call to set up buttons
+init();
+
+window.onload = function () {
+    autoCollapse();
+    // Remove the `preload` class to enable animations
+    document.querySelector('body').className = '';
+};
+</script></body></html>

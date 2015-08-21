@@ -1,0 +1,235 @@
+FORMAT: 1A
+HOST: http://www.cometa.io
+
+# Cometa API
+This document describes the [Cometa](http://www.cometa.io) HTTP REST and Websockets API to use in a Web or mobile application to interact with remote IoT devices using the Cometa platform.
+
+## Mode of Operation
+Cometa is an edge server mediating communication between applications and remote devices. Typical communication needs of a IoT device include responding to a message request from an application and sending event data to a server. Both paradigms are covered in the Cometa API.
+
+Devices connect to Cometa using the `attach` HTTP method to establish a permanent connection to the Cometa server. Once a device is attached, Cometa provides the underlying transport for both message exchange according to a RPC (Remote Procedure Call) pattern, and to establish a data pipe used by the devices to send asynchronous events data upstream.
+
+>Cometa follows the HTTP chunked transfer encoding format of the [HTTP 1.1 specifications](http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html).
+
+## Messages to Device
+After attaching to Cometa, a device starts a listening loop to receive RPC requests from Cometa. A message sent to a device is assumed to include a command and some parameters, and is also expected to receive a message response from the device.
+
+Applications use the `send` method to invoke a RPC to a remote device, with the message body containing the request and the parameters. Once Cometa receives an RPC message for the device from the application, it relays the request to the device and expects a synchronous reply to the message, following a typical RPC (Remote Procedure Call) pattern. The reply received from the device is then relayed back to the requesting application as response to the RPC invocation.
+
+::: note
+Developers can take advantage of the higher level C/C++ library in the [Cometa Devices SDK](http://www.cometa.io/docs) to accelerate firmware development and integration of devices in the Cometa platform.
+:::
+ 
+## Data Events
+A device can use the connection to Cometa to send asynchronous upstream data, that is not in response to a RPC invocation. For instance, to send an event notification upstream. Sensor data that are acquired periodically can also be sent to the data pipe upstream by a device at any time and not as a RPC reply.
+
+> Cometa can be configured with webhooks to forward event upstream messages to an external application server or to a document database such as MongoDB.
+
+## Websockets
+Cometa exposes a unique Websocket URL endpoint for each device attached to the server. Details on how to obtain the endpoint are decribed [below](#websockets-1).
+
+Once a Websocket to a device is opened, an application has a real-time, bi-directional connection with the device. The payload sent by an application
+must follow the RPC pattern. in a similar way to the HTTP `send` method. However, since the communication has been already established, the exchange happens
+in real-time, without any overhead. Also, the application receives real-time events sent upstream by the device. The events are received by a Websocket application, regardless of the presence or not of a forwarding events webhook configured in Cometa.
+
+## Wire Protocol
+A device attached to Cometa has a bi-directional transport for RPC and an upstream data pipe for events, but Cometa does not enforce any wire protocol, that is left to the application. 
+
+>Using Cometa is straightforward to implement the [JSON-RPC](http://www.jsonrpc.org) protocol for remote interactions with devices, and to send asynchronous data upstream as JSON objects. See the device code examples in the [Cometa Device SDK documentation](http://www.cometa.io/docs).
+
+## Cometa Applications
+Both devices and applications use the concept of *application* both for partitioning devices into reserved areas, and for authentication purposes. A Cometa *application* provides credentials in the form of an 'application-id' and `application-secret`. The `application-id` is unique for the server. Cometa *applications* and their credentials are stored in the `/etc/cometa.conf` server configuration file.
+
+>Each device belongs to a Cometa *application* and has a unique device ID.
+
+## Base URL
+```no-highlight
+http://{HOST}:{PORT}/v1/
+```
+
+## Autenthication
+All HTTP requests, with exception of device `attach`, need to be authenticated using the following HTTP Header:
+
+HEADER | Description | Value
+--| ---- | -----------
+ Authorization | authorization token  | OAuth {APPLICATION-SECRET}
+
+ Example:
+
+```http
+Authorization: OAuth 8ad3773142a6692b25b7
+```
+
+# Data Structures
+
+## DeviceData
++ id: 1 (required, number) - Unique identifier
++ app_id: 1 (required, string) - Unique application identifier
++ device_id: 1 (required, string) - Unique device identifier
+
+
+## DeviceList (array[DeviceData])
+
+# Group Devices
+Interactions with devices.
+
+## Important Info
+Devices need to be attached before they can receive RPC invocations or send events data.
+
+For a device to attach to a Cometa server only the Application ID for the application and a unique Device ID are required. In the HTTP POST to attach a Device to Cometa the HTTP authorization header is not required. This is to avoid storing the Authorization token in a device.
+
+If a Device is successfully subscribed, the response object contains the preferred heartbeat frequency in seconds, and the Epoch time of the server in the timestamp. The heartbeat frequency is only a hint and devices can decide whether to use it or to ignore it, however a heartbeat must be sent by a device to keep the connection. See details in the [Cometa Device SDK documentation](http://www.cometa.io/docs) about the format of a heartbeat message.
+
+## Device [/applications/{app_id}/devices/{device_id}]
+Device methods.
+
++ Parameters
+
+    + app_id: `946604ed1d971eca2879` (required, string) - The Application ID
+    + device_id: `ca375b970d037fb7fb2e` (required, string) - The Device ID
+
+### Attach a Device [POST]
+Attach the device invoking the method. 
+
+Once a sevice has attached to the Cometa server, the HTTP connection is reverted and persisted. Further interactions from an application follow the request/response typical of a synchronous RPC pattern.
+
+Attempts to attach a device that is already attached, is rejected by the Cometa server with a 409 Conflict HTTP status code. 
+
++ Request (application/json)
+
+    + Body
+
+        	{
+    			"platform"
+    		}
+
++ Response 200 (application/json)
+
+	+ Body
+
+			{
+				"msg":"200 OK",
+				"heartbeat":60,
+				"timestamp":1426274354
+			}
+
++ Response 409 (application/json)
+
+    + Body
+
+            {
+                "409 Conflict"
+            }
+
+
+### Device presence info [GET]
+Obtain information about presence and statistics of the specified device.
+
+The Device's persistent connection to the Cometa server is maintained by the Device sending a heartbeat message to the server regularly, as specified in the Cometa server configuration. The heartbeat insures also that the port assigned in a NAT device the Device might be connected to, is not reused as result of inactivity.
+
+The heartbeat message is not propagated to the application but used only by the Cometa server to determine the Device presence.
+
+It is important to notice that when an attached device goes away abruptly without closing the connection, the Cometa server may still consider the device as attached, until an inactivity timeout occurs for lack of receiving an heartbeat from the device. The typical timeout with a heartbeat setting of 60 seconds is of 120 seconds.
+
++ Response 200 (application/json)
+
+	+ Body
+
+			{
+			    "device_id": "45F026", 
+    			"ip_address": "169.237.139.216:10371", 
+    			"heartbeat": "1440100577", 
+    			"info": "BCMUSI14", 
+    			"stats": {
+			        "connected_at": "1440095840", 
+			        "messages": "12", 
+			        "errors": "0", 
+			        "bytes_up": "108652", 
+			        "bytes_down": "4560", 
+			        "latency": "2", 
+			        "websockets": "0"
+			    }
+			}
+
++ Response 423 (application/json)
+
+    + Body
+
+            {
+                "Error 418 in the request: Device not attached"
+            }
+
+### Detach a Device [DELETE]
+Detach the specified device from the Cometa server.
+
++ Parameters
+
+    + app_id: `946604ed1d971eca2879` (required, string) - The Application ID
+    + device_id: `ca375b970d037fb7fb2e` (required, string) - The Device ID
+
++ Response 200 (application/json)
+
+	+ Body
+
+			{
+				"msg":"200 OK"
+			}
+
++ Response 423 (application/json)
+
+    + Body
+
+            {
+                "Error 418 in the request: Device not attached"
+            }
+
+## Send to Device [/applications/{app_id}/devices/{device_id}/send]
+Send a message containing a request to an attached Device and receive the reply in the response.
+
+Only one request at a time can be processed by a device. A 423 Locked HTTP status code is returned if the device is still processing a previous request.
+
+### Send a message to a device [POST]
+
++ Parameters
+
+    + app_id: `946604ed1d971eca2879` (required, string) - The Application ID
+    + device_id: `ca375b970d037fb7fb2e` (required, string) - The Device ID
+
++ Request (application/json)
+
+    + Body
+
+        	{
+    			"get":"compressor_power"
+    		}
+
++ Response 200 (application/json)
+
+	+ Body
+
+			{
+				"power":"251.32",
+                "properties": 
+                    {
+                        "ReadingType":"double",
+                        "Timezone":"America/Los_Angeles",
+                        "UnitofMeasure":"Watt"
+                    },
+                "uuid":"2180322f-6999-4e89-8320-e2127ffc26d3"
+			}
+
++ Response 423 (application/json)
+
+    + Body
+
+            {
+                "423 Locked"
+            }
+
+# Group Websockets 
+
+Once a Websocket is established by a
+
+# Group Admin 
+
+Also Markdown *formatted*. This also includes automatic "smartypants" formatting -- hooray!
