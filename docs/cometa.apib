@@ -17,7 +17,7 @@ After attaching to Cometa, a device starts a listening loop to receive RPC reque
 Applications use the `send` method to invoke a RPC to a remote device, with the message body containing the request and the parameters. Once Cometa receives an RPC message for the device from the application, it relays the request to the device and expects a synchronous reply to the message, following a typical RPC (Remote Procedure Call) pattern. The reply received from the device is then relayed back to the requesting application as response to the RPC invocation.
 
 ::: note
-Developers can take advantage of the higher level C/C++ library in the [Cometa Devices SDK](http://www.cometa.io/docs) to accelerate firmware development and integration of devices in the Cometa platform.
+Developers can take advantage of the higher level C/C++ library in the [Cometa Devices SDK](https://github.com/cometa/device-sdk) to accelerate firmware development and integration of devices in the Cometa platform.
 :::
  
 ## Data Events
@@ -26,16 +26,16 @@ A device can use the connection to Cometa to send asynchronous upstream data, th
 > Cometa can be configured with webhooks to forward event upstream messages to an external application server or to a document database such as MongoDB.
 
 ## Websockets
-Cometa exposes a unique Websocket URL endpoint for each device attached to the server. Details on how to obtain the endpoint are decribed [below](#websockets-1).
+Cometa exposes a unique Websocket URL endpoint for each device attached to the server. Details on how to obtain the URL endpoint are decribed [below](#websockets-1).
 
 Once a Websocket to a device is opened, an application has a real-time, bi-directional connection with the device. The payload sent by an application
 must follow the RPC pattern. in a similar way to the HTTP `send` method. However, since the communication has been already established, the exchange happens
-in real-time, without any overhead. Also, the application receives real-time events sent upstream by the device. The events are received by a Websocket application, regardless of the presence or not of a forwarding events webhook configured in Cometa.
+in real-time, without any overhead. Also, the application receives all the real-time events sent upstream by the device. The events are received by a Websocket application, regardless of the presence or not of a forwarding events webhook configured in Cometa.
 
 ## Wire Protocol
 A device attached to Cometa has a bi-directional transport for RPC and an upstream data pipe for events, but Cometa does not enforce any wire protocol, that is left to the application. 
 
->Using Cometa is straightforward to implement the [JSON-RPC](http://www.jsonrpc.org) protocol for remote interactions with devices, and to send asynchronous data upstream as JSON objects. See the device code examples in the [Cometa Device SDK documentation](http://www.cometa.io/docs).
+>Using Cometa is straightforward to implement the [JSON-RPC](http://www.jsonrpc.org) protocol for remote interactions with devices, and to send asynchronous data upstream as JSON objects. See the device code examples in the [Cometa Device SDK documentation](https://github.com/cometa/device-sdk).
 
 ## Cometa Applications
 Both devices and applications use the concept of *application* both for partitioning devices into reserved areas, and for authentication purposes. A Cometa *application* provides credentials in the form of an 'application-id' and `application-secret`. The `application-id` is unique for the server. Cometa *applications* and their credentials are stored in the `/etc/cometa.conf` server configuration file.
@@ -71,14 +71,14 @@ Authorization: OAuth 8ad3773142a6692b25b7
 ## DeviceList (array[DeviceData])
 
 # Group Devices
-Interactions with devices.
+Interactions with devices using HTTP methods.
 
 ## Important Info
 Devices need to be attached before they can receive RPC invocations or send events data.
 
 For a device to attach to a Cometa server only the Application ID for the application and a unique Device ID are required. In the HTTP POST to attach a Device to Cometa the HTTP authorization header is not required. This is to avoid storing the Authorization token in a device.
 
-If a Device is successfully subscribed, the response object contains the preferred heartbeat frequency in seconds, and the Epoch time of the server in the timestamp. The heartbeat frequency is only a hint and devices can decide whether to use it or to ignore it, however a heartbeat must be sent by a device to keep the connection. See details in the [Cometa Device SDK documentation](http://www.cometa.io/docs) about the format of a heartbeat message.
+If a Device is successfully subscribed, the response object contains the preferred heartbeat frequency in seconds, and the Epoch time of the server in the timestamp. The heartbeat frequency is only a hint and devices can decide whether to use it or to ignore it, however a heartbeat must be sent by a device to keep the connection. See details in the [Cometa Device SDK documentation](https://github.com/cometa/device-sdk) about the format of a heartbeat message.
 
 ## Device [/applications/{app_id}/devices/{device_id}]
 Device methods.
@@ -200,7 +200,8 @@ Only one request at a time can be processed by a device. A 423 Locked HTTP statu
     + Body
 
         	{
-    			"get":"compressor_power"
+    			"cmd":"get",
+                "params":[ "compressor_power","cabin_temperature"]
     		}
 
 + Response 200 (application/json)
@@ -208,15 +209,34 @@ Only one request at a time can be processed by a device. A 423 Locked HTTP statu
 	+ Body
 
 			{
-				"power":"251.32",
-                "properties": 
-                    {
-                        "ReadingType":"double",
-                        "Timezone":"America/Los_Angeles",
-                        "UnitofMeasure":"Watt"
-                    },
-                "uuid":"2180322f-6999-4e89-8320-e2127ffc26d3"
-			}
+                "status":"ok",
+    			"reply": 
+                    [ 
+                        { 
+                            "value":"251.32",
+                            "properties": 
+                                {
+                                    "ReadingType":"double",
+                                    "Timezone":"America/Los_Angeles",
+                                    "UnitofMeasure":"Watt"
+                                },
+                            "path":"/cloudfridge/100007/compressor_power",
+                            "uuid":"2180322f-6999-4e89-8320-e2127ffc26d3"
+        		         },
+                         {
+                            "value":"4.21",
+                            "properties": 
+                                {
+                                    "ReadingType":"double",
+                                    "Timezone":"America/Los_Angeles",
+                                    "UnitofMeasure":"Deg C"
+                                },
+                            "path":"/cloudfridge/100007/cabin_temperature",                        
+                            "uuid":"9ebb7573-d55a-4597-8793-ffe4db0773eb"
+                        }
+                    ]
+            }
+
 
 + Response 423 (application/json)
 
@@ -228,7 +248,42 @@ Only one request at a time can be processed by a device. A 423 Locked HTTP statu
 
 # Group Websockets 
 
-Once a Websocket is established by a
+Websockets communication with devices.
+
+## Obtain a Device Websocket key [/applications/{app_id}/devices/{device_id}/websocket]
+
+A Websocket endpoint for a device includes an authorization key that is provided by the `websocket` method.
+
+The key can only be used once, and the key has to be requested every time an application opens a device Websocket endpoint. 
+
+A device Websocket endpoint is created by Cometa as follows:
+
+```http
+ws://{HOST}:{PORT}/websockets/{DEVICE_ID}/{DEVICE_KEY}
+```
+
+For example:
+```http
+ws://api.cometa.io/websockets/700012/e8d8349a7afb3a7c70e93b85a348b21762b518de
+```
+
+### Get a Websocket device key [GET]
+
++ Parameters
+
+    + app_id: `946604ed1d971eca2879` (required, string) - The Application ID
+    + device_id: `ca375b970d037fb7fb2e` (required, string) - The Device ID
+
+
++ Response 200 (application/json)
+
+  + Body
+
+            {
+                "device_id":"700012",
+                "device_key":"e8d8349a7afb3a7c70e93b85a348b21762b518de"}
+            }
+
 
 # Group Admin 
 
