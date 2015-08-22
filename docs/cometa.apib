@@ -91,7 +91,7 @@ Device methods.
 ### Attach a Device [POST]
 Attach the device invoking the method. 
 
-Once a sevice has attached to the Cometa server, the HTTP connection is reverted and persisted. Further interactions from an application follow the request/response typical of a synchronous RPC pattern.
+Once a sevice has attached to the Cometa server, the HTTP connection is reverted and persisted. Further interactions from an application follow the request/response typical of a synchronous RPC pattern. The method body contains a string used as generic platform information.
 
 Attempts to attach a device that is already attached, is rejected by the Cometa server with a 409 Conflict HTTP status code. 
 
@@ -100,7 +100,7 @@ Attempts to attach a device that is already attached, is rejected by the Cometa 
     + Body
 
         	{
-    			"platform"
+    			"BCMUSI14"
     		}
 
 + Response 200 (application/json)
@@ -118,7 +118,7 @@ Attempts to attach a device that is already attached, is rejected by the Cometa 
     + Body
 
             {
-                "409 Conflict"
+                "msg":"409 Conflict"
             }
 
 
@@ -156,7 +156,7 @@ It is important to notice that when an attached device goes away abruptly withou
     + Body
 
             {
-                "Error 418 in the request: Device not attached"
+                "msg":"Error 418 in the request: Device not attached"
             }
 
 ### Detach a Device [DELETE]
@@ -175,12 +175,12 @@ Detach the specified device from the Cometa server.
 				"msg":"200 OK"
 			}
 
-+ Response 423 (application/json)
++ Response 418 (application/json)
 
     + Body
 
             {
-                "Error 418 in the request: Device not attached"
+                "msg":"418 Device not attached"
             }
 
 ## Send to Device [/applications/{app_id}/devices/{device_id}/send]
@@ -243,7 +243,24 @@ Only one request at a time can be processed by a device. A 423 Locked HTTP statu
     + Body
 
             {
-                "423 Locked"
+                "msg":"423 Locked"
+            }
+
++ Response 408 (application/json)
+
+    + Body
+
+            {
+                "msg":"408 Request Time-out"
+            }
+   
+
++ Response 418 (application/json)
+
+    + Body
+
+            {
+                "msg":"418 Device not attached"
             }
 
 # Group Websockets 
@@ -282,6 +299,15 @@ ws://api.cometa.io/websockets/700012/e8d8349a7afb3a7c70e93b85a348b21762b518de
             {
                 "device_id":"700012",
                 "device_key":"e8d8349a7afb3a7c70e93b85a348b21762b518de"}
+            }
+
+
++ Response 418 (application/json)
+
+    + Body
+
+            {
+                "msg":"418 Device not attached"
             }
 
 
