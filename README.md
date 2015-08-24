@@ -1,4 +1,4 @@
 # device-sdk
 Cometa Device SDK
 
-Coming in September 2015.
+*Coming in September 2015*
