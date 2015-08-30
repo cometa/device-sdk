@@ -40,7 +40,22 @@ Usage:
  		-v for verbose (default is silent)
  
  	example 
- 		./cometa-client -s api.service.com -p 80 -k 946604ed1d981eca287 -v
+ 		$ ./cometa-client -s api.service.com -p 80 -k 946604ed1d981eca287 -d 777 -v
+
+Once `cometa-client` runs on the device, a shell command can be sent as message to be remotely executed in the device and the output returned in the response. 
+
+
+	$ curl -X POST -d '/bin/cat /etc/hosts' -H 'Authorization: OAuth ba723dc4811d507580f4'  http://devel.cometa.io:8000/v1/applications/846604ed0c981eca2779/devices/777/send
+	
+	127.0.0.1       localhost 
+	127.0.1.1       kubuntu 
+
+	# The following lines are desirable for IPv6 capable hosts 
+	::1     ip6-localhost ip6-loopback 
+	fe00::0 ip6-localnet 
+	ff00::0 ip6-mcastprefix 
+	ff02::1 ip6-allnodes 
+	ff02::2 ip6-allrouters 
 
 Cometa C-language SDK
 --------
@@ -70,13 +85,14 @@ typedef enum  {
 cometa_reply cometa_init(const char *device_id,  const char *server_name, const char * server_port, const char *platform);
 ```
 Initialize the application to use Cometa and provides the necessary parameters
- to identify the Cometa server and the device. 
-| PARAMETER                   | DESCRIPTION                 | TYPE    
- -------------------------------|-------------------------|-
-|  `device_id`  	| device ID      | `const char *` 
-| `server_name`    	| Cometa server FQDN | `const char *`
-| `server_port`		| Cometa server port | `const char *`
-| `platform`		| device description | `const char *`  
+ to identify the Cometa server and the device.
+ 
+| PARAMETER             | DESCRIPTION        | TYPE           |
+|-----------------------|--------------------|----------------|
+| `device_id`  	| device ID          | `const char *` | 
+| `server_name`    	| Cometa server FQDN | `const char *` |
+| `server_port`		| Cometa server port | `const char *` |
+| `platform`		| device description | `const char *` |
 
 @platform - a string (max 64 chars [a-zA-Z] only) 
 @return - completion code
@@ -86,8 +102,9 @@ Initialize the application to use Cometa and provides the necessary parameters
 struct cometa *cometa_attach(const char *app_id);
 ``` 
  Subscribe the device to the specified application. The application ID must match one application defined in the `/etc/cometa.conf` file.
- | PARAMETER                   | DESCRIPTION                 | TYPE    
- -------------------------------|-------------------------|-
+
+| PARAMETER                   | DESCRIPTION         | TYPE    
+|-----------------------------|---------------------|---
 |  `app_id`  	| application ID      | `const char *` 
 
  @return - the connection handle (pointer to opaque data structure) or NULL in case of error
@@ -104,8 +121,9 @@ cometa_reply cometa_send(struct cometa *handle, const char *buf, const int size)
 
 ```
 Send a message upstream to the Cometa server. 
- | PARAMETER                   | DESCRIPTION                 | TYPE    
- -------------------------------|-------------------------|-
+
+| PARAMETER                   | DESCRIPTION               | TYPE    
+|-------------------------------|-------------------------|---
 |  `handle`  	| Cometa handle      | `const char *` 
 |  `buf`  	| data buffer      | `const char *` 
 |  `size`  	| data buffer size      | `const int` 
@@ -118,16 +136,17 @@ cometa_reply cometa_bind_cb(struct cometa *handle, cometa_message_cb cb);
 ```
 Bind a callback to a Cometa connection to handle messages received from the server. 
 
- | PARAMETER                   | DESCRIPTION                 | TYPE    
- -------------------------------|-------------------------|-
+| PARAMETER                   | DESCRIPTION             | TYPE    
+|-----------------------------|-------------------------|---
 |  `handle`  	| Cometa handle      | `const char *` 
 |  `cb`  	| callback function      | `cometa_message_cb` 
  
 ```
  typedef char *(*cometa_message_cb)(const int data_size, void *data);
 ```
-| PARAMETER                   | DESCRIPTION                 | TYPE    
- -------------------------------|-------------------------|-
+
+| PARAMETER                   | DESCRIPTION             | TYPE    
+|-----------------------------|-------------------------|---
 |  `data_size`  	| message data size      | `const int` 
 |  `data`  	| message data      | `void *`
 
@@ -141,7 +160,7 @@ cometa_reply cometa_error(struct cometa *handle);
 ````
 Return the last reply error in a function for the connection.
 
- | PARAMETER                   | DESCRIPTION                 | TYPE    
- -------------------------------|-------------------------|-
+| PARAMETER                   | DESCRIPTION             | TYPE
+|-----------------------------|-------------------------|---
 |  `handle`  	| Cometa handle      | `const char *` 
  
