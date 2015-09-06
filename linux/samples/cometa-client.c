@@ -151,7 +151,7 @@ message_handler(const int data_len, void *data)
 	 * Here is where the received message is interpreted and proper action taken.
 	 */
 	/* remove CRLF at the end of the Chunked-encoded message */
-	rcvBuf[data_len - 2] = '\0';
+	rcvBuf[data_len] = '\0';
 	processCmd(rcvBuf, cmdOutput);
 	
 	/* 

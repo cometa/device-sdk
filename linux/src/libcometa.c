@@ -290,8 +290,12 @@ send_heartbeat(void *h) {
     ssize_t n;
 	
 	handle = (struct cometa *)h;
-	usleep(handle->hz * 1000000);
 	do {
+	    while (usleep(handle->hz * 1000000) == -1 && (errno == EINTR))
+			/* interrupted by a SIGNAL */
+			continue;
+        //usleep(handle->hz * 1000000);
+
 		if ((ret = pthread_rwlock_wrlock(&handle->hlock)) != 0) {
 	        fprintf(stderr, "ERROR: in send_heartbeat. Failed to get wrlock. ret = %d. Exiting.\r\n", ret);
 	        exit (-1);
@@ -317,12 +321,10 @@ send_heartbeat(void *h) {
             if (ret_sub == NULL) {
                 debug_print("ERROR: attempt to reconnect to the server failed.\n");
             }
+            continue;
         }
 		pthread_rwlock_unlock(&(handle->hlock));
 
-		while (usleep(handle->hz * 1000000) == -1 && (errno == EINTR))
-			/* interrupted by a SIGNAL */
-			continue;
 	} while (1);
 }	/* send_heartbeat */
 
@@ -398,14 +400,13 @@ fd_set readset;
             n += ret;
         }
         
-        if (n <= 0) {
+        if ((n <= 0 && len > 0) || errno == EPIPE) {
             debug_print("DEBUG: in message receive loop. Socket read: %d errno: %d. Setting reconnect flag. [1]\r\n", n, errno);       
             /* Possibly the server closed the connection. Nothing to recover really. The next heartbeat will attempt a new connection. */
             /* Let the heartbeat thread to attempt a reconnection when the server has closed the socket (keep-alive) */
             handle->flag = 1;
-            sleep(1);
             pthread_rwlock_unlock(&(handle->hlock));
-
+            sleep(1);
             continue;            
         }
  #ifdef NODEF
@@ -434,7 +435,7 @@ fd_set readset;
              */
         }
         /* on STREAMS-based systems read() from a socket returns 0 when the connection is closed */
-        if (n == 0) {
+        if ((n == 0 && len > 0) || errno == EPIPE) {
             debug_print("DEBUG: in message receive loop. Socket read: %d errno: %d. Setting reconnect flag. [2]\r\n", n, errno);
             /* Nothing to recover really. The next heartbeat will attempt a new connection. */
             /* Let the heartbeat thread to attempt a reconnection when the server has closed the socket (keep-alive) */
@@ -460,13 +461,11 @@ fd_set readset;
             continue;
         }
 
-
-		/* invoke the user callback */
-
         /* received a command */
         debug_print("DEBUG: received from server:\r\n%s\n", handle->recvBuff);
 
 		if (handle->user_cb) {
+		    /* invoke the user callback */
 			response = handle->user_cb(n, handle->recvBuff);
 			/* assume to receive a zero-terminated string from the application */
 			// intf(handle->sendBuff, "%x\r\n%s\r\n", (int)strlen(response) + 2, response);
@@ -798,7 +797,7 @@ cometa_attach(const char *app_id) {
             debug_print("DEBUG: Restarted receive loop.\r");
     }
     pthread_attr_destroy(&attr);
-    
+
 	conn->reply = COMEATAR_OK;
 	return conn;
 }	/* cometa_subscribe */
@@ -816,6 +815,10 @@ cometa_reply cometa_send(struct cometa *handle, const char *buf, const int size)
     int ret;
     ssize_t n;
     
+    /* return if the reconnecting flag is set */
+    if (handle->flag == 1)
+        return COMEATAR_NET_ERROR;
+        
     if ((ret = pthread_rwlock_wrlock(&handle->hlock)) != 0) {
         fprintf(stderr, "ERROR: in cometa_send. Failed to get wrlock. ret = %d. Exiting.\r\n", ret);
         exit (-1);
