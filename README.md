@@ -10,3 +10,4 @@ Devices and sample applications can be tested interactively with the API console
 The directories are:
 
 * `linux`: Linux/Posix libraries, in particular embedded Linux systems, Raspberry PI and BeagleBone.
+* `python`: OS independent Python client library. For any system with Python and [VIPER](http://www.viperize.it/).
