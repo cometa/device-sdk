@@ -40,19 +40,20 @@ def message_handler(msg, msg_len):
 		The message handler is the Cometa receive callback. 
 		Every time the Cometa library receives a message for this device the message_handler is invoked.
 	"""
-	print "received message:", msg, "len:", msg_len
-
 	try:
 		c = json.loads(msg)
 	except Exception, e:
+		print "Error in parsing the message: ", msg
 		return "{\"msg\":\"Invalid JSON object.\"}"
 
 	if 'cmd' in c:
+		print "Command received: ", c['cmd']	#DEBUG
 		command = c['cmd']
 		# execute the command in a shell on the device
 		out = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE).stdout.read()
 		return out
 	else:
+		print "Invalid command."
 		return "{\"msg\":\"Invalid command.\"}"
 	
 def main(argv):
@@ -85,10 +86,10 @@ def main(argv):
 	  	Check the Cometa API documentation at http://www.cometa.io/cometa-api.html for further details on the HTTP commands and 
 	  	for a description of how to obtain a Websocket endpoint for the remote device.
 	"""
-	cometa_server = '' # "api.cometa.io"
-	cometa_port = 0  # 8000
-	application_id = '' # "d0353b75b8fa61889d19"
-	# use the machine's MAC address as Cometa device ID
+	cometa_server = '' 
+	cometa_port = 0  
+	application_id = '' 
+	# if not specified use the machine's MAC address as Cometa device ID
 	device_id = get_mac_address()
 
 	try:
@@ -107,27 +108,38 @@ def main(argv):
 			application_id = arg
 
 	if application_id == '' or cometa_server == '' or cometa_port == 0:
-		print 'cometa-client.py -s <cometa_server> -p <cometa_port> -a <application_id> [-d <device_id>]'
+		print 'Usage: cometa-client.py -s <cometa_server> -p <cometa_port> -a <application_id> [-d <device_id>]'
 		sys.exit(2)
 
-	print "cometa-client started. cometa_server:", cometa_server, "cometa_port:", cometa_port, "application_id:", application_id, "device_id:", device_id
+	# ------------------------------------------------ #
+	print "Cometa client started.\r\nParams: cometa_server:", cometa_server, "cometa_port:", cometa_port, "application_id:", application_id, "device_id:", device_id
 
 	# Instantiate a Cometa object
 	com = cometa.CometaClient(cometa_server, cometa_port, application_id)
+	# Set debug flag
+	# com.debug = True
 
 	# Bind the message_handler() callback. The callback is doing the function of respoding
 	# to remote requests and handling the core part of the work of the application.
 	com.bind_cb(message_handler)
 
 	# Attach the device to Cometa.
-	ret = com.attach(device_id, "viper-device")
+	ret = com.attach(device_id, "stardust")
 	if com.error != 0:
-		print "Error in attaching to Cometa.", com.perror()
+		print "(FATAL) Error in attaching to Cometa.", com.perror()
 		sys.exit(2)
 
 	# When attach is successful the server returns an object of the format:
 	# {"msg":"200 OK","heartbeat":60,"timestamp":1441405206}
-	print "Device attached to Cometa.\r\nServer returned:", ret
+	try:
+		ret_obj = json.loads(ret)
+	except Exception, e:
+		print "(FATAL) Error in parsing the message returned after attaching to Cometa. Message:", ret
+		sys.exit(2)
+
+	print "Device [%s] attached to Cometa. Server timestamp: %d" % (device_id, ret_obj['timestamp'])
+	if com.debug:
+		print "Server returned:", ret
 
 	# Application main loop.
 	while True:
@@ -141,8 +153,12 @@ def main(argv):
 		time.sleep(60)
 		now = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 		msg = "{\"id\":\"%s\",\"time\":\"%s\"}" % (device_id, now)
-		print "sending data event.", msg
-		com.send_data(msg)
+
+		if com.send_data(msg) < 0:
+			print "Error in sending data."
+		else:
+			if com.debug:
+				print "sending data event.", msg
 
 	print "***** should never get here"
 

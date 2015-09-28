@@ -17,9 +17,10 @@ __all__ = ["CometaClient"]
 
 import socket
 import select
-import pdb
 import time
 import threading
+# From http-parser (0.8.3)
+# pip install http-parser
 from http_parser.parser import HttpParser
 
 class CometaClient(object):
@@ -121,18 +122,22 @@ class CometaClient(object):
 		"""
 		Send a data event message upstream to the Cometa server.
  		If a Webhook is specified for the Application in the Cometa configuration file /etc/cometa.conf on the server, 
- 		the message is relayed to the Webhook. Cometa propagates the message to all opened device Websockets endpoints. 
+ 		the message is relayed to the Webhook. Also, the Cometa server propagates the message to all open devices Websockets. 
 		"""
 		sendBuf = "%x\r\n%c%s\r\n" % (len(msg) + 1,'\07',msg)
 		if self._reconnecting:
-			print "--- send_data return while reconnecting"
-			return
+			if self.debug:
+				print "Error in Cometa.send_data(): device is reconnecting."
+			return -1
 		try:
 			self._hb_lock.acquire()
 			self._sock.send(sendBuf)
 			self._hb_lock.release()			
 		except Exception, e:
-			return
+			if self.debug:
+				print "Error in Cometa.send_data(): socket write failed."
+			return -1
+		return 0
 
 	def bind_cb(self, message_cb):
 		"""
@@ -154,7 +159,7 @@ class CometaClient(object):
  		This thread detects a server disconnection and attempts to reconnect to the Cometa server.
 		"""
 		if self.debug:
-			print "hearbeat thread started."
+			print "Hearbeat thread started.\r"
 				
 		while True:
 			time.sleep(self._heartbeat_rate)
@@ -176,7 +181,7 @@ class CometaClient(object):
 		The receive and user callback dispatch loop thread.
 		"""
 		if self.debug:
-			print "receive thread started"
+			print "Receive thread started.\r"
 		msg = ""
 		while True:
 			ready_to_read, ready_to_write, in_error = select.select([self._sock.fileno()],[],[self._sock.fileno()], 15)
@@ -240,9 +245,13 @@ class CometaClient(object):
 					reply = self._message_cb(msg_body, msg_len)
 				else:
 					reply = ""
+				if self.debug:
+					print "After callback."
 			else:
 				continue
 
+			if self.debug:
+				print "Returning result."
 			sendBuf = "%x\r\n%s\r\n" % (len(reply),reply)
 			try:
 				self._hb_lock.acquire()
