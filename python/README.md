@@ -55,7 +55,7 @@ to execute the <shell command> on the device identified by {DEVICE_ID}:
 
 Example
 --- 
- 		$ python cometa-client.py -s api.service.com -p 80 -k 946604ed1d981eca287 -d 777 
+ 		$ python cometa-client.py -s api.service.com -p 80 -a 946604ed1d981eca287 -d 777 
 
 Once `cometa-client` runs on the device, a shell command can be sent as message to be remotely executed in the device and the output returned in the response. 
 
