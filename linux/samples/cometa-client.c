@@ -62,8 +62,6 @@
  * The application_id must match in the Cometa server parameters defined in /etc/cometa.conf
  * 
  */
-#define COMETA_APP_NAME "cometatest"
-#define COMETA_APP_ID "946604ed1d981eca2879"
  
 char *cometa_server_name = NULL;
 char *cometa_server_port = NULL;
@@ -306,7 +304,7 @@ main(int argc, char **argv)
     /* 
      * Attach to cometa. 
      */	
-    cometa = cometa_attach(COMETA_APP_ID, cometa_use_ssl);
+    cometa = cometa_attach(cometa_application_id, cometa_use_ssl);
 	if (cometa == NULL) {
 		fprintf(stderr, "DEBUG: Error in cometa_attach. Exiting.\r\n");
 		exit(-1);
