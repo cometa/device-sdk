@@ -88,7 +88,7 @@ class CometaClient(object):
 					# i.e. {"msg":"200 OK","heartbeat":60,"timestamp":1441382935}
 					recvBuf = self._hparser.recv_body()
 					#TODO: check for error in connecting, i.e. 403 already connected
-					if len(recvBuf) < 16 or recvBuf[1:15] != '"msg":"200 OK"':
+					if len(recvBuf) < 16 or recvBuf[1:12] != '"msg":"200"':
 						self.error = 5
 						return recvBuf
 
