@@ -21,7 +21,7 @@ To build the library and the samples use:
 
 To enable additional debugging, uncomment the `DEBUG` in the Makefile.
 
-To enable SSL, uncomment the `USE_SSL` literal definition in `Makefile` and copy the `rootcert.pem` CA root certificate used in the server in the same directory as the samples.
+To enable SSL, uncomment the `WITH_SSL` literal definition in `Makefile` and copy the `rootcert.pem` CA root certificate used in the server in the same directory as the samples.
 
 Samples
 -------
@@ -37,13 +37,16 @@ Usage:
  		-p 	: Cometa server port
  		-a 	: Cometa application ID to attach the device to (defined in /etc/cometa.conf)
  		-d 	: the device ID. If not specified, the machine's MAC address is used as device_id
+ 		-e      : use SSL
  		-v for verbose (default is silent)
  
  	example 
  		$ ./cometa-client -s api.service.com -p 80 -k 946604ed1d981eca287 -d 777 -v
-
+ 		
+	using SSL
+		$ ./cometa-client -s api.service.com -p 443 -k 946604ed1d981eca287 -d 777 -v -e
+		
 Once `cometa-client` runs on the device, a shell command can be sent as message to be remotely executed in the device and the output returned in the response. 
-
 
 	$ curl -X POST -d '/bin/cat /etc/hosts' -H 'Authorization: OAuth ba723dc4811d507580f4'  http://devel.cometa.io:8000/v1/applications/846604ed0c981eca2779/devices/777/send
 	
