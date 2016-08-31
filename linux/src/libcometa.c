@@ -25,7 +25,7 @@
  */
 
 #include <string.h>
-#ifdef USE_SSL
+#ifdef WITH_SSL
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
@@ -36,6 +36,7 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <fnmatch.h>
 
 #include <netinet/in.h>
 #include <netdb.h>
@@ -85,37 +86,36 @@
             do {  } while (0)
 #endif
 
+#define S_ON_HEADER_INVOKED 1
+#define S_ON_BODY_INVOKED 2
 /*
  * The cometa structure contains the connection socket and buffers.
  *
  */
 struct cometa {
-    int    sockfd;					/* socket to Cometa server */
-	char recvBuff[MESSAGE_LEN];		/* received buffer */
+    int sockfd;					    /* socket to Cometa server */
+    char recvBuff[MESSAGE_LEN];		/* received buffer */
     char sendBuff[MESSAGE_LEN];		/* send buffer */
-	int	app_sockfd;					/* socket to the application server */
-	char *app_name;					/* application name */
-	char *app_id;					/* application key */
-	cometa_message_cb user_cb;		/* message callback */
-	pthread_t	tloop;				/* thread for the receive loop */
-	pthread_t	tbeat;				/* thread for the heartbeat */
-	pthread_rwlock_t hlock;     	/* lock for heartbeat */
-	int	hz;							/* heartbeat period in sec */	
-	cometa_reply reply;				/* last reply code */
+    int	app_sockfd;					/* socket to the application server */
+    char *app_name;					/* application name */
+    char *app_id;					/* application key */
+    cometa_message_cb user_cb;		/* message callback */
+    pthread_t	tloop;				/* thread for the receive loop */
+    pthread_t	tbeat;				/* thread for the heartbeat */
+    pthread_rwlock_t hlock;     	/* lock for heartbeat */
+    int	hz;							/* heartbeat period in sec */	
+    cometa_reply reply;				/* last reply code */
     int flag;                       /* disconnection flag */
-#ifdef USE_SSL
+
+    int state;
+    http_parser parser;
+
+#ifdef WITH_SSL
     BIO     *bconn;
     SSL     *ssl;
     SSL_CTX *ctx;
 #endif    
 };
-
-/* used to parse the server response */
-http_parser parser;
-http_parser_settings settings;
-int header_complete;
-int body_complete;
-char *body_at;
 
 /** Library global variables **/
 
@@ -132,23 +132,68 @@ struct cometa *conn_save = NULL;
 
 /** Functions definitions **/
 
-int on_headers_complete(http_parser* _) {
-  (void)_;
-  debug_print("\n***HEADERS COMPLETE***\n\n");
-  header_complete = 1;
-  return 0;
+ssize_t cometa_write(struct cometa *c) {
+#ifdef WITH_SSL
+    if (c->bconn) {
+        return SSL_write(c->ssl, c->sendBuff, strlen(c->sendBuff));
+    } else
+#endif
+        return write(c->sockfd, c->sendBuff, strlen(c->sendBuff));
+        //return send(c->sockfd, c->sendBuff, strlen(c->sendBuff), MSG_DONTWAIT);
+    return -1;
+}
+ssize_t cometa_read(struct cometa *c, char *buffer, size_t n) {
+#ifdef WITH_SSL
+    if (c->bconn) {
+        return SSL_read(c->ssl, buffer, n);
+    } else
+#endif
+        return read(c->sockfd, buffer, n);
+    return -1;
+}
+static int parse(struct cometa *c, http_parser_settings *s, int n)
+{
+    size_t skip = http_parser_execute(&c->parser, s, c->recvBuff, n);
+    if (skip) {
+        memmove(c->recvBuff, c->recvBuff + skip, skip);
+    }
+    return skip;
+}
+static int on_headers_complete(http_parser *p)
+{
+    struct cometa *c = p->data;
+    debug_print("\n***HEADERS COMPLETE***\n\n");
+    c->state |= S_ON_HEADER_INVOKED;
+    return 0;
+}
+static int on_body(http_parser *p, const char* at, size_t length)
+{
+    struct cometa *c = p->data;
+    debug_print("\n*** BODY ***\n\n");
+    debug_print("Body: %.*s\n", (int)length, at);
+    c->state |= S_ON_BODY_INVOKED;
+    return 0;
+}
+static int on_body_user_cb(http_parser *p, const char* at, size_t length)
+{
+    struct cometa *c = p->data;
+
+    debug_print("DEBUG: received from server\r\n:%.*s\n", (int)length, at);
+
+    if (c->user_cb) {
+        char *response = c->user_cb(length, (char *)at);
+        sprintf(c->sendBuff, "%x\r\n%s\r\n", (int)strlen(response), response);
+        debug_print("DEBUG: sending response:\r\n%s\n", c->sendBuff);
+    } else {
+        sprintf(c->sendBuff, "%x\r\n\r\n", 2);
+        debug_print("DEBUG: sending empty response.\r\n");
+    }
+    cometa_write(c);
+
+    return 0;
 }
 
-int on_body(http_parser* _, const char* at, size_t length) {
-  (void)_;
-  debug_print("\n*** BODY ***\n\n");
-  debug_print("Body: %.*s\n", (int)length, at);
-  body_complete = 1;
-  body_at = (char *)at;
-  return 0;
-}
-
-#ifdef USE_SSL
+#ifdef WITH_SSL
 static int 
 verify_callback(int ok, X509_STORE_CTX *store)
 {
@@ -226,7 +271,8 @@ post_connection_check(SSL *ssl, char *host)
                 for (j = 0;  j < sk_CONF_VALUE_num(val);  j++)
                 {
                     nval = sk_CONF_VALUE_value(val, j);
-                    if (!strcmp(nval->name, "DNS") && !strcmp(nval->value, host))
+                    if (!strcmp(nval->name, "DNS") &&
+		        (!strcmp(nval->value, host) || fnmatch(nval->value, host, 0)))
                     {
                         ok = 1;
                         break;
@@ -255,8 +301,8 @@ err_occured:
     return X509_V_ERR_APPLICATION_VERIFICATION;
 }
 
-#define CAFILE "rootcert.pem"
-#define CADIR NULL
+#define CAFILE NULL
+#define CADIR "/etc/ssl/certs"
 
 static SSL_CTX *
 setup_client_ctx(void)
@@ -288,9 +334,14 @@ send_heartbeat(void *h) {
 	struct cometa *handle, *ret_sub;
     int ret;
     ssize_t n;
-	
+    int ssl = 0;
+
 	handle = (struct cometa *)h;
-	do {
+#ifdef WITH_SSL
+    ssl = !!handle->ssl;
+#endif
+
+    do {
 	    while (usleep(handle->hz * 1000000) == -1 && (errno == EINTR))
 			/* interrupted by a SIGNAL */
 			continue;
@@ -304,11 +355,7 @@ send_heartbeat(void *h) {
 		/* send a heartbeat */
         sprintf(handle->sendBuff, "1\r\n%c\r\n", MSG_HEARTBEAT); 
 
-#ifdef USE_SSL
-    	n = SSL_write(handle->ssl, handle->sendBuff, strlen(handle->sendBuff));
-#else
-		n = write(handle->sockfd, handle->sendBuff, strlen(handle->sendBuff));
-#endif
+    	n = cometa_write(handle);
         /* check for connection state and reconnection flag */
         if (n <= 0 || handle->flag == 1) { //&& (errno == EPIPE)) {
             pthread_rwlock_unlock(&(handle->hlock));
@@ -317,7 +364,7 @@ send_heartbeat(void *h) {
             debug_print("in send_heartbeat. Reconnecting: n = %d, errno = %d, flag = %d\n\r", (int)n, (int)errno, handle->flag);
             /* attempt to reconnect */
             /* TODO: add a random delay to avoid server flooding when many devices disconnect at the same time */
-            ret_sub = cometa_attach(conn_save->app_id);
+            ret_sub = cometa_attach(conn_save->app_id, ssl);
             if (ret_sub == NULL) {
                 debug_print("ERROR: attempt to reconnect to the server failed.\n");
             }
@@ -333,23 +380,17 @@ send_heartbeat(void *h) {
  */
 static void *
 recv_loop(void *h) {
-	char *response;
-	struct cometa *handle;
-	int n;
-    int ret, ch, len;
+    http_parser_settings settings;
 
-int result;
-fd_set readset;
+    int n = 0;
+    struct cometa *handle = h;
+    fd_set readset;
 
-    handle = (struct cometa *)h;
+    memset(&settings, 0, sizeof(settings));
+    settings.on_body = on_body_user_cb;
 
-    /* 
-	 * start a forever loop reverting the connection and receiving requests from the server 
-	 */
     while (1) {
-        /* read the first line of the chuck containing the body length */
-        n = 0;
-
+        int result;
         do {
            FD_ZERO(&readset);
            FD_SET(handle->sockfd, &readset);
@@ -357,131 +398,8 @@ fd_set readset;
         } while (result == -1 && errno == EINTR);
 
         pthread_rwlock_wrlock(&handle->hlock);
-/*
-#ifdef USE_SSL
-        ret = SSL_read(handle->ssl, handle->recvBuff + n, 1);
-#else
-        ret = read(handle->sockfd, handle->recvBuff + n, 1);
-#endif
-        if (pthread_rwlock_wrlock(&(handle->hlock)) != 0) {
-            fprintf(stderr, "ERROR: in message receive loop. Failed to get wrlock. Exiting.\r\n");
-            exit (-1);
-        } 
-        n = 1;
-*/       
-        /* read the chuck lengh in the first line ending with \r\n */
-        do {
-#ifdef USE_SSL
-            ret = SSL_read(handle->ssl, handle->recvBuff + n, 1);
-#else
-            ret = read(handle->sockfd, handle->recvBuff + n, 1);
-#endif
-            ch = *(handle->recvBuff + n);
-            // printf("--- %d %d\n", n, ch);
-            n++;
-        } while (ch != 10);
-        handle->recvBuff[n] = '\0';
-        
-//        if (pthread_rwlock_wrlock(&(handle->hlock)) != 0) {
-//            fprintf(stderr, "ERROR: in message receive loop. Failed to get wrlock. Exiting.\r\n");
-//            exit (-1);
-//        } 
-        /* convert from hex string to int */
-        len = (int)strtol(handle->recvBuff, NULL, 16);
-        debug_print("DEBUG: ret = %d - len = %d - n = %d - errno = %d - first line:\r\n%s", ret, len, n, errno, handle->recvBuff);
-        /* read the chunk */
-        n = 0;
-        while (n < len) {
-#ifdef  USE_SSL
-            ret = SSL_read(handle->ssl, handle->recvBuff + n, len); // sizeof(handle->recvBuff) -  1);
-#else
-            ret = read(handle->sockfd, handle->recvBuff + n, len);
-#endif
-            n += ret;
-        }
-        
-        if ((n <= 0 && len > 0) || errno == EPIPE) {
-            debug_print("DEBUG: in message receive loop. Socket read: %d errno: %d. Setting reconnect flag. [1]\r\n", n, errno);       
-            /* Possibly the server closed the connection. Nothing to recover really. The next heartbeat will attempt a new connection. */
-            /* Let the heartbeat thread to attempt a reconnection when the server has closed the socket (keep-alive) */
-            handle->flag = 1;
-            pthread_rwlock_unlock(&(handle->hlock));
-            sleep(1);
-            continue;            
-        }
- #ifdef NODEF
-        /* read a closing new line */
-        do {
-#ifdef USE_SSL
-            ret = SSL_read(handle->ssl, handle->recvBuff + n, 1);
-#else
-            ret = read(handle->sockfd, handle->recvBuff + n, 1);
-#endif
-            ch = *(handle->recvBuff + n);
-            // printf("... %d %d\n", n, ch);
-            n++;    
-        } while (ch != 10);
- #endif       
-        handle->recvBuff[n] = '\0';  
-        
-        if ((MESSAGE_LEN - 1) < n) {
-            fprintf(stderr, "ERROR: in message receive loop. Message too large. nbytes: %d, errno: %d.\r\n", n, errno);
-            pthread_rwlock_unlock(&(handle->hlock));
-            continue;
-            /* Receiving a large  message works well up to 2 times MESSAGE LEN because sendBuff 
-             * is allocated after the recvBuff. 
-             * TODO: handle a message larger than 2 x MESSAGE_LEN by reading the first line
-             * containing the lenght of the body (in hex).
-             */
-        }
-        /* on STREAMS-based systems read() from a socket returns 0 when the connection is closed */
-        if ((n == 0 && len > 0) || errno == EPIPE) {
-            debug_print("DEBUG: in message receive loop. Socket read: %d errno: %d. Setting reconnect flag. [2]\r\n", n, errno);
-            /* Nothing to recover really. The next heartbeat will attempt a new connection. */
-            /* Let the heartbeat thread to attempt a reconnection when the server has closed the socket (keep-alive) */
-            handle->flag = 1;
-            sleep(1);
-            pthread_rwlock_unlock(&(handle->hlock));
-            continue;            
-        }
-        /* check if the connection has been terminated by the server with a SIGPIPE */
-        if (n == -1 && errno == EINTR) {
-            debug_print("DEBUG: in message receive loop. Socket read: %d errno: %d. Setting reconnect flag. [3]\r\n", n, errno);       
-            /* Nothing to recover really. The next heartbeat will attempt a new connection. */
-            handle->flag = 1;
-            sleep(1);
-            pthread_rwlock_unlock(&(handle->hlock));    
-            continue;
-        }
-        if (n < 0) {
-            fprintf(stderr, "ERROR: in message receive loop. Socket read error. nbytes: %d, errno: %d. Setting reconnect flag. [4]\r\n", n, errno);
-            handle->flag = 1;
-            sleep(1);
-            pthread_rwlock_unlock(&(handle->hlock));
-            continue;
-        }
-
-        /* received a command */
-        debug_print("DEBUG: received from server:\r\n%s\n", handle->recvBuff);
-
-		if (handle->user_cb) {
-		    /* invoke the user callback */
-			response = handle->user_cb(n, handle->recvBuff);
-			/* assume to receive a zero-terminated string from the application */
-			// intf(handle->sendBuff, "%x\r\n%s\r\n", (int)strlen(response) + 2, response);
-            sprintf(handle->sendBuff, "%x\r\n%s\r\n", (int)strlen(response), response);     // MEG CRLF
-
-		    debug_print("DEBUG: sending response:\r\n%s\n", handle->sendBuff);
-		} else {
-			sprintf(handle->sendBuff, "%x\r\n\r\n", 2);
-			debug_print("DEBUG: sending empty response.\r\n");
-		}
-        /* send the response back */
-#ifdef USE_SSL
-        n = SSL_write(handle->ssl, handle->sendBuff, strlen(handle->sendBuff));
-#else
-        n = write(handle->sockfd, handle->sendBuff, strlen(handle->sendBuff));
-#endif
+        n += cometa_read(handle, handle->recvBuff + n, MESSAGE_LEN - n - 1);
+        n -= parse(handle, &settings, n);
         pthread_rwlock_unlock(&(handle->hlock));
     }
 	return NULL;
@@ -494,7 +412,6 @@ fd_set readset;
  * @result the connection socket or -1 -  not used with SSL.
  *
  */
-#ifndef USE_SSL
 static int 
 en_connect(void) 
 	{
@@ -536,7 +453,6 @@ en_connect(void)
 	/* return the socket */
     return sockfd;
 }   /* en_connect */
-#endif
 
 /*
  * Initialize the application to use the library.  
@@ -548,7 +464,7 @@ en_connect(void)
  *
  */
 cometa_reply
-cometa_init(const char *device_id,  const char *server_name, const char * server_port, const char *platform)
+cometa_init(const char *device_id, const char *server_name, const char * server_port, const char *platform)
 {
     if (!server_name || !server_port)
         return COMETAR_PAR_ERROR;
@@ -565,7 +481,7 @@ cometa_init(const char *device_id,  const char *server_name, const char * server
 	else
 		device.info = NULL;
         
-#ifdef USE_SSL
+#ifdef WITH_SSL
     if (!SSL_library_init()) {
         fprintf(stderr, "** OpenSSL initialization failed!\n");
         exit(-1);
@@ -577,13 +493,6 @@ cometa_init(const char *device_id,  const char *server_name, const char * server
     /* ignore SIGPIPE and handle socket write errors inline  */
     signal(SIGPIPE, SIG_IGN);
 
-    /* setup the http parser for the server responses */
-    memset(&settings, 0, sizeof(settings));
-    settings.on_headers_complete = on_headers_complete;
-    settings.on_body = on_body;
-    
-    http_parser_init(&parser, HTTP_RESPONSE);
-  
 	return COMEATAR_OK;
 }	/* cometa_init */
 
@@ -592,6 +501,7 @@ cometa_init(const char *device_id,  const char *server_name, const char * server
  * Attach the initialized device to a Cometa registered application. 
  * 
  * @param app_id- the application ID
+ * @param ssl- use https
  *
  * @info  Authentication is done using the app_id (one-way authentication).
  *
@@ -599,25 +509,35 @@ cometa_init(const char *device_id,  const char *server_name, const char * server
  *
  */
 struct cometa *
-cometa_attach(const char *app_id) {
-	struct cometa *conn;
+cometa_attach(const char *app_id, int ssl) {
+    http_parser_settings settings;
+
+    struct cometa *conn;
     char platform_buf[128];
-	pthread_attr_t attr;
-	int n, ret;
-#ifdef USE_SSL
+    pthread_attr_t attr;
+    int n;
+#ifdef WITH_SSL
     long err;
-	int ch;
+#endif
+
+#ifndef WITH_SSL
+    if (ssl)
+        return NULL;
 #endif
 	
     /* check when called for reconnecting */
     if (conn_save != NULL) {
+        fprintf(stderr, "in cometa_attach: reconnecting\r\n");
+
         /* it is a reconnection */
         conn = conn_save;
         conn->flag = 0;
         /* cancel the receive loop thread */
-        pthread_cancel(conn->tloop);
+//        pthread_cancel(conn->tloop);
         /* wait for the thread to complete */
-        pthread_join(conn->tloop, NULL);
+//       pthread_join(conn->tloop, NULL);
+
+        fprintf(stderr, "in cometa_attach: after join\r\n");
     } else {
         /* allocate data structure when called the first time */
         conn = calloc(1, sizeof(struct cometa));
@@ -633,59 +553,61 @@ cometa_attach(const char *app_id) {
         	conn->reply = COMETAR_PAR_ERROR;
             return NULL;		
         }
-#ifdef USE_SSL
-        conn->ctx = setup_client_ctx();
+#ifdef WITH_SSL
+        if (ssl)
+            conn->ctx = setup_client_ctx();
 #endif
     }
         
-#ifdef USE_SSL
-    conn->bconn = BIO_new_connect(device.server_name);
-    if (!conn->bconn) {
-        fprintf(stderr, "Error creating connection BIO.\n");
-        conn->reply = COMETAR_ERROR;
-      	return NULL;
-    }
- 
-    /* set connection blocking */
-    if (BIO_set_nbio(conn->bconn, 0) != 1) {
-        fprintf(stderr, "Unable to set BIO to blocking mode.\n");
-        conn->reply = COMETAR_ERROR;
-        return NULL;     
-    }
-    
-    if (BIO_do_connect(conn->bconn) <= 0) {
-        fprintf(stderr, "Error connecting to remote machine.\n");
-        conn->reply = COMETAR_ERROR;
-	  	return NULL;
-    }
-     
-    conn->ssl = SSL_new(conn->ctx);
-    SSL_set_mode(conn->ssl, SSL_MODE_AUTO_RETRY);
+#ifdef WITH_SSL
+    if (ssl) {
+        conn->bconn = BIO_new_ssl_connect(conn->ctx);
+        if (!conn->bconn) {
+            fprintf(stderr, "Error creating connection BIO.\n");
+            conn->reply = COMETAR_ERROR;
+            return NULL;
+        }
+        BIO_get_ssl(conn->bconn, &conn->ssl);
+        if (!conn->ssl) {
+            return NULL;
+        }
+        SSL_set_mode(conn->ssl, SSL_MODE_AUTO_RETRY);
 
-    SSL_set_bio(conn->ssl, conn->bconn, conn->bconn);
-    
-    if (SSL_connect(conn->ssl) <= 0) {
-        fprintf(stderr, "Error connecting SSL object.\n");
-        conn->reply = COMETAR_ERROR;
-      	return NULL;        
-    }
-//MEG    if ((err = post_connection_check(conn->ssl, VERIFY_SERVERNAME)) != X509_V_OK) {
-    if ((err = post_connection_check(conn->ssl, device.server_name)) != X509_V_OK) {
-        fprintf(stderr, "-Error: peer certificate: %s\n", X509_verify_cert_error_string(err));
-        fprintf(stderr, "Error checking SSL object after connection.\n");
-        conn->reply = COMETAR_ERROR;
-        return NULL;
-    }
-    fprintf(stderr, "DEBUG: SSL Connection opened\n");
-#else
-    /* select and connect to a server from the ensemble */
-    conn->sockfd = en_connect();
-    if (conn->sockfd == -1) {               /* No address succeeded */
-		fprintf(stderr, "ERROR : Connection to server %s failed. Is the Cometa server running?\r\n", device.server_name);
-		conn->reply = COMETAR_ERROR;
-	  	return NULL;
-	}
+        if (BIO_set_nbio(conn->bconn, 0) != 1) {
+            fprintf(stderr, "Unable to set BIO to blocking mode.\n");
+            conn->reply = COMETAR_ERROR;
+            return NULL;     
+        }
+        if (!BIO_set_conn_hostname(conn->bconn, device.server_name) ||
+            !BIO_set_conn_port(conn->bconn, device.server_port)) {
+            return NULL;
+        }
+        if (BIO_do_connect(conn->bconn) <= 0) {
+            fprintf(stderr, "Error connecting to remote machine.\n");
+            conn->reply = COMETAR_ERROR;
+            return NULL;
+        }
+        if ((err = post_connection_check(conn->ssl, device.server_name)) != X509_V_OK) {
+            fprintf(stderr, "-Error: peer certificate: %s\n", X509_verify_cert_error_string(err));
+            fprintf(stderr, "Error checking SSL object after connection.\n");
+            conn->reply = COMETAR_ERROR;
+            return NULL;
+        }
+
+        fprintf(stderr, "DEBUG: SSL Connection opened\n");
+
+        conn->sockfd = SSL_get_fd(conn->ssl);
+    } else
 #endif
+    {
+        /* select and connect to a server from the ensemble */
+        conn->sockfd = en_connect();
+        if (conn->sockfd == -1) {               /* No address succeeded */
+            fprintf(stderr, "ERROR : Connection to server %s failed. Is the Cometa server running?\r\n", device.server_name);
+            conn->reply = COMETAR_ERROR;
+            return NULL;
+        }
+    }
 
     /*
      * ----------------------  send idevice attach request to cometa
@@ -697,54 +619,31 @@ cometa_attach(const char *app_id) {
     sprintf(conn->sendBuff, "POST /v1/applications/%s/devices/%s HTTP/1.1\r\nHost: api.cometa.io\r\nContent-Length: %zd\r\n\r\n%s", app_id, device.id, strlen(platform_buf), platform_buf);
     debug_print("DEBUG: sending URL:\r\n%s", conn->sendBuff);
 
-#ifdef USE_SSL
-    n = SSL_write(conn->ssl, conn->sendBuff, strlen(conn->sendBuff));
-#else
-    n = write(conn->sockfd, conn->sendBuff, strlen(conn->sendBuff));
-#endif
+    n = cometa_write(conn);
     if (n <= 0)  {
         fprintf(stderr, "ERROR: writing to cometa server socket.\r\n");
 		conn->reply = COMEATAR_NET_ERROR;
         return NULL;
     }
- 
-    /* parse the server response */   
-	http_parser_init(&parser, HTTP_RESPONSE);
-	header_complete = 0;
-	body_complete = 0;
-	
-    /* read response with JSON object result */
+
+    memset(&settings, 0, sizeof(settings));
+    settings.on_headers_complete = on_headers_complete;
+    settings.on_body = on_body;
+    http_parser_init(&conn->parser, HTTP_RESPONSE);
+    conn->parser.data = conn;
+
     n = 0;
     do {
-#ifdef USE_SSL
-        ret = SSL_read(conn->ssl, conn->recvBuff + n, MESSAGE_LEN - n - 1);
-#else
-        ret = read(conn->sockfd, conn->recvBuff + n, MESSAGE_LEN - n - 1);
-#endif
-		n += ret;
-		http_parser_execute(&parser, &settings, conn->recvBuff, n);
-    } while (!header_complete);
-    
-    /* read the body */
+        n += cometa_read(conn, conn->recvBuff + n, MESSAGE_LEN - n - 1);
+        n -= parse(conn, &settings, n);
+    } while (!(conn->state & S_ON_HEADER_INVOKED));
+
     n = 0;
-    while (!body_complete) {
-#ifdef USE_SSL
-        ret = SSL_read(conn->ssl, conn->recvBuff + n, MESSAGE_LEN - n - 1);
-#else
-        ret = read(conn->sockfd, conn->recvBuff + n, MESSAGE_LEN - n - 1);
-#endif
-		n += ret;
-		http_parser_execute(&parser, &settings, conn->recvBuff, n);
-	}
- 
-#ifdef USE_SSL    
-    /* skip CR/LF */
-    do {
-        ret = SSL_read(conn->ssl, conn->recvBuff + n, 1);
-        ch = *(conn->recvBuff + n);
-        n++;    
-    } while (ch != 10);
-#endif
+    while (!(conn->state & S_ON_BODY_INVOKED)) {
+        n += cometa_read(conn, conn->recvBuff + n, MESSAGE_LEN - n - 1);
+        n -= parse(conn, &settings, n);
+    }
+    conn->state = 0;
 
     conn->recvBuff[n] = '\0';
     debug_print("DEBUG: received (%zd):\r\n%s\n", strlen(conn->recvBuff), conn->recvBuff);
@@ -754,9 +653,7 @@ cometa_attach(const char *app_id) {
 	 * 	 success:{ "msg": "200 OK", "heartbeat": 60, "time": 142334566 } 
 	 * 	 failed: { "msg": "403 Forbidden" }
 	 */
-     
-    /* simple check if the response contains the 403 status */
-	if (strstr(conn->recvBuff, "403")) {
+	if (conn->parser.status_code != 200) {
 		conn->reply = COMETAR_AUTH_ERROR;
 		return NULL;
 	} 
@@ -838,11 +735,7 @@ cometa_reply cometa_send(struct cometa *handle, const char *buf, const int size)
     sprintf(handle->sendBuff, "%x\r\n%c%.*s\r\n", size + 1, MSG_UPSTREAM, size, buf);   // MEG CRLF
 
     /* perform a single write for the data chunk */
-#ifdef USE_SSL
-    n = SSL_write(handle->ssl, handle->sendBuff, strlen(handle->sendBuff));
-#else
-    n = write(handle->sockfd, handle->sendBuff, strlen(handle->sendBuff));
-#endif
+    n = cometa_write(handle);
     
     pthread_rwlock_unlock(&(handle->hlock));
 

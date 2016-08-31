@@ -83,7 +83,7 @@ cometa_reply cometa_init(const char *device_id,  const char *server_name, const 
  *
  */
  
-struct cometa *cometa_attach(const char *app_id);
+struct cometa *cometa_attach(const char *app_id, int ssl);
 
 /*
  * Send a message upstream to the Cometa server. 

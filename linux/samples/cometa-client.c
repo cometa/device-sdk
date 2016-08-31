@@ -27,8 +27,9 @@
  *
  *			Note: the application sends a timestamp to the server every 60 seconds as a way to demonstrate use of upstream events.
  *
- * @usage	cometa-client -s [server_name] -p [server_port] -a [app_id] {-d device_id} {-v}
+ * @usage	cometa-client -s [server_name] [ -e ] -p [server_port] -a [app_id] {-d device_id} {-v}
  *				-s 	: Cometa server name (FQDN)
+ *				-e 	: use ssl
  *				-p 	: Cometa server port
  *				-a 	: Cometa application ID to attach the device to (as defined in the Cometa server /etc/cometa.conf)
  * 				-d 	: the device ID. If not specified, the machine's MAC address is used as device_id
@@ -61,9 +62,13 @@
  * The application_id must match in the Cometa server parameters defined in /etc/cometa.conf
  * 
  */
+#define COMETA_APP_NAME "cometatest"
+#define COMETA_APP_ID "946604ed1d981eca2879"
+ 
 char *cometa_server_name = NULL;
 char *cometa_server_port = NULL;
 char *cometa_application_id = NULL;
+int cometa_use_ssl = 0;
 
 /* The device ID */
 char *device_id = NULL;
@@ -132,6 +137,7 @@ message_handler(const int data_len, void *data)
 	time_t now;
     struct tm  ts;
     char dateBuf[80];
+    char cmd[512];
 	
 	/* save the buffer */
 	memcpy(rcvBuf, data, data_len);
@@ -152,7 +158,11 @@ message_handler(const int data_len, void *data)
 	 */
 	/* remove CRLF at the end of the Chunked-encoded message */
 	rcvBuf[data_len] = '\0';
-	processCmd(rcvBuf, cmdOutput);
+    cmdOutput[0] = '\0';
+    sprintf(cmd, "\"%s\"", rcvBuf);
+    if (data_len > 0)
+        processCmd(cmd, cmdOutput);
+
 	
 	/* 
 	 * Return the output as response.
@@ -218,6 +228,7 @@ get_device_id(void) {
  * Command line parameters:
  *		-s 	: Cometa server name (FQDN)
  *		-p 	: Cometa server port
+ *		-e 	: use ssl
  *		-a 	: Cometa application ID to attach the device to (as defined in the Cometa server /etc/cometa.conf)
  * 		-d 	: the device ID. If not specified, the machine's MAC address is used as device_id
  *		-v for verbose (default is silent)
@@ -230,13 +241,16 @@ main(int argc, char **argv)
 	cometa_reply ret;
 	int c;
 	
-    while ((c = getopt (argc, argv, "s:p:a:d:v?")) != -1)
+    while ((c = getopt (argc, argv, "s:p:ea:d:v?")) != -1)
         switch (c) {
             case 's':
                 cometa_server_name = strdup(optarg);
                 break; 
             case 'p':
                 cometa_server_port = strdup(optarg);
+                break;    
+            case 'e':
+                cometa_use_ssl = 1;
                 break;    
             case 'a':
                 cometa_application_id = strdup(optarg);
@@ -260,7 +274,7 @@ main(int argc, char **argv)
        }
         
     if (cometa_server_name == NULL || cometa_server_port == NULL  || cometa_application_id == NULL) {
-        fprintf(stderr, "Usage: cometa-client -s [server_name] -p [server_port] -a [app_id] {-d device_id} {-v}\r\n");
+        fprintf(stderr, "Usage: cometa-client -s [server_name] -p [server_port] [ -e ] -a [app_id] {-d device_id} {-v}\r\n");
 		return 1;
 	}
 
@@ -289,10 +303,10 @@ main(int argc, char **argv)
      */
     signal(SIGCHLD, SIG_IGN);
 	
-	/* 
+    /* 
      * Attach to cometa. 
      */	
-    cometa = cometa_attach(cometa_application_id);
+    cometa = cometa_attach(COMETA_APP_ID, cometa_use_ssl);
 	if (cometa == NULL) {
 		fprintf(stderr, "DEBUG: Error in cometa_attach. Exiting.\r\n");
 		exit(-1);
