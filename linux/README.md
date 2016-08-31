@@ -32,7 +32,7 @@ The application sends a timestamp to the server every 60 seconds to demonstrate 
 
 Usage:
 
-	cometa-client -s [server_name] -p [server_port] -a [app_id] {-d device_id} {-v}
+	cometa-client -s [server_name] -p [server_port] -a [app_id] {-d device_id} {-v} {-e}
 		-s 	: Cometa server name (FQDN)
  		-p 	: Cometa server port
  		-a 	: Cometa application ID to attach the device to (defined in /etc/cometa.conf)
@@ -41,10 +41,10 @@ Usage:
  		-v for verbose (default is silent)
  
  	example 
- 		$ ./cometa-client -s api.service.com -p 80 -k 946604ed1d981eca287 -d 777 -v
+ 		$ ./cometa-client -s api.service.com -p 80 -a 946604ed1d981eca287 -d 777 -v
  		
 	using SSL
-		$ ./cometa-client -s api.service.com -p 443 -k 946604ed1d981eca287 -d 777 -v -e
+		$ ./cometa-client -s api.service.com -p 443 -a 946604ed1d981eca287 -d 777 -v -e
 		
 Once `cometa-client` runs on the device, a shell command can be sent as message to be remotely executed in the device and the output returned in the response. 
 
