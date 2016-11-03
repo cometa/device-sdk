@@ -23,6 +23,7 @@ import threading
 # pip install http-parser
 from http_parser.parser import HttpParser
 import ssl
+import pdb
 
 class CometaClient(object):
 	"""Connect a device to the Cometa infrastructure"""
@@ -200,7 +201,6 @@ class CometaClient(object):
 		"""
 		if self.debug:
 			print "Receive thread started.\r"
-		msg = ""
 		while True:
 			ready_to_read, ready_to_write, in_error = select.select([self._sock.fileno()],[],[self._sock.fileno()], 15)
 
@@ -252,19 +252,14 @@ class CometaClient(object):
 
 			if self.debug:
 				print "** received: %s (%d)" % (data, len(data))			
-			msg = msg.join(data)
-			#self._hparser.execute(msg, len(msg))
 			self._hparser.execute(data, len(data))
 			if self._hparser.is_partial_body():
+				to_send = self._hparser.recv_body()
+				# pdb.set_trace()
 				# the payload contains a HTTP chunk
-				lines = msg.split('\r\n')
-				if len(lines) == 1:
-					continue
-				msg_len = lines[0]	# first line with body length
-				msg_body = lines[1]	# second line with body
 				if self._message_cb:
 					# invoke the user callback 
-					reply = self._message_cb(msg_body, msg_len)
+					reply = self._message_cb(to_send, len(to_send))
 				else:
 					reply = ""
 				if self.debug:
