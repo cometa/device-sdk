@@ -50,8 +50,13 @@ def message_handler(msg, msg_len):
 		print "Command received: ", c['cmd']	#DEBUG
 		command = c['cmd']
 		# execute the command in a shell on the device
-		out = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE).stdout.read()
-		return out
+		try:
+			subprocess.check_call(command,shell=True)
+			out = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE).stdout.read()
+			return out
+		except Exception, e:
+			print e
+			return "{\"msg\":\"Invalid command.\"}"
 	else:
 		print "Invalid command."
 		return "{\"msg\":\"Invalid command.\"}"
@@ -117,7 +122,7 @@ def main(argv):
 	# Instantiate a Cometa object
 	com = cometa.CometaClient(cometa_server, cometa_port, application_id)
 	# Set debug flag
-	# com.debug = True
+	com.debug = True
 
 	# Bind the message_handler() callback. The callback is doing the function of respoding
 	# to remote requests and handling the core part of the work of the application.
