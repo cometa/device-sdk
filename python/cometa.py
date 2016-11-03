@@ -22,6 +22,7 @@ import threading
 # From http-parser (0.8.3)
 # pip install http-parser
 from http_parser.parser import HttpParser
+import ssl
 
 class CometaClient(object):
 	"""Connect a device to the Cometa infrastructure"""
@@ -65,7 +66,12 @@ class CometaClient(object):
 		self._device_id = device_id
 		self._platform = device_info
 		self._hparser = HttpParser()
-		self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		tsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		if self._port == 443:
+			self._sock = ssl.wrap_socket(tsock, ssl_version=ssl.PROTOCOL_SSLv23,  ciphers="AES256-GCM-SHA384")		
+		else:
+			self._sock = tsock
+
 		try:
 			self._sock.connect((self._server, self._port))
 			sendBuf="POST /v1/applications/%s/devices/%s HTTP/1.1\r\nHost: api.cometa.io\r\nContent-Length:%d\r\n\r\n%s" % (self._app_id,device_id,len(device_info),device_info)
@@ -82,14 +88,21 @@ class CometaClient(object):
 
 				if self._hparser.is_headers_complete():
 					if self.debug:
-						print "connection for device %s complete" % (device_id)
+						print "connection for device %s headers received" % (device_id)
 						print self._hparser.get_headers()
+
+				if self._hparser.is_partial_body():
+					recvBuf = self._hparser.recv_body()
+					if self.debug:
+						print "connection for device %s body received" % (device_id)
+						print recvBuf					
+					#TODO: check for error in connecting, i.e. 403 already connected
+
 					# reading the attach complete message from the server  
 					# i.e. {"msg":"200 OK","heartbeat":60,"timestamp":1441382935}
-					recvBuf = self._hparser.recv_body()
-					#TODO: check for error in connecting, i.e. 403 already connected
 					if len(recvBuf) < 16 or recvBuf[1:12] != '"msg":"200"':
 						self.error = 5
+						print "Error in string from server; %s" % recvBuf
 						return recvBuf
 
 					# reset error
@@ -103,18 +116,23 @@ class CometaClient(object):
 						self._reconnecting = False
 						return recvBuf
 
-					# start the hearbeat thread
+					if self.debug:
+						print "connection for device %s completed" % (device_id)
+											# start the hearbeat thread
 					self._thbeat = threading.Thread(target=self._heartbeat)
 					self._thbeat.daemon = True
 					self._thbeat.start()
 						
 					# start the receive thread
+					#time.sleep(2)
 					self._trecv = threading.Thread(target=self._receive)
 					self._trecv.daemon = True	# force to exit on SIGINT
 					self._trecv.start()
 
+
 					return recvBuf
-		except:
+		except Exception, e:
+			print e
 			self.error = 2
 			return
 
@@ -209,6 +227,7 @@ class CometaClient(object):
 				try:
 					data = self._sock.recv(1024)
 				except Exception, e:
+					print e
 					pass
 
 			if not data:
@@ -231,8 +250,11 @@ class CometaClient(object):
 					print "Device attached to Cometa.", ret				
 				continue
 
+			if self.debug:
+				print "** received: %s (%d)" % (data, len(data))			
 			msg = msg.join(data)
-			self._hparser.execute(msg, len(msg))
+			#self._hparser.execute(msg, len(msg))
+			self._hparser.execute(data, len(data))
 			if self._hparser.is_partial_body():
 				# the payload contains a HTTP chunk
 				lines = msg.split('\r\n')
