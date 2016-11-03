@@ -90,6 +90,8 @@ def main(argv):
 
 	  	Check the Cometa API documentation at http://www.cometa.io/cometa-api.html for further details on the HTTP commands and 
 	  	for a description of how to obtain a Websocket endpoint for the remote device.
+
+	  	IMPORTANT: Use port 443 to enable SSL.
 	"""
 	cometa_server = '' 
 	cometa_port = 0  
