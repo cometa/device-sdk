@@ -222,7 +222,8 @@ class CometaClient(object):
 				else:
 					print "Device attached to Cometa.", ret
 				continue
-
+				
+			data = None
 			for i in ready_to_read:
 				try:
 					data = self._sock.recv(1024)
