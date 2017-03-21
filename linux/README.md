@@ -15,13 +15,19 @@ The library uses the [Node HTTP Parser](https://github.com/joyent/http-parser) b
 
 Installation
 -------
-To build the library and the samples use:
+To build the (default) shared library and the samples use:
 
+	./bootstrap
+	./configure
 	make
 
-To enable additional debugging, uncomment the `DEBUG` in the Makefile.
+To install use:
 
-To enable SSL, uncomment the `WITH_SSL` literal definition in `Makefile` and copy the `rootcert.pem` CA root certificate used in the server in the same directory as the samples.
+	sudo make install
+
+To enable additional debugging, uncomment and comment the relevant default CFLAGS definition in the configure.ac file to control the -DDEBUG option.
+
+By default `WITH_SSL` is configured (the `rootcert.pem` CA root certificate used in the server needs to be copied into the same directory as the samples). As with the DEBUG manifest the configure.ac CFLAGS can be modified to disable SSL support if required.
 
 Samples
 -------

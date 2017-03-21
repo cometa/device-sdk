@@ -1,0 +1,21 @@
+#! /bin/sh
+set -e
+if which libtoolize > /dev/null
+then
+ LIBTOOLIZE=`which libtoolize`
+else
+ echo "ERROR: Failed to find libtoolize"
+ exit 1
+fi
+
+${LIBTOOLIZE}
+
+if [ -e /usr/share/aclocal ]
+then
+ aclocal -I /usr/share/aclocal
+else
+ aclocal
+fi
+
+autoconf
+automake --foreign --add-missing --copy
