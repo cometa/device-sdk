@@ -31,3 +31,29 @@ cometa-client
 
 # Debug files
 *.dSYM/
+
+# libtoolize/autoconf/configure world
+linux/Makefile
+linux/Makefile.in
+linux/aclocal.m4
+linux/autom4te.cache/
+linux/compile
+linux/config.guess
+linux/config.log
+linux/config.status
+linux/config.sub
+linux/configure
+linux/depcomp
+linux/install-sh
+linux/libtool
+linux/ltmain.sh
+linux/m4/
+linux/missing
+linux/samples/.deps/
+linux/samples/.libs/
+linux/samples/Makefile
+linux/samples/Makefile.in
+linux/src/.deps/
+linux/src/.libs/
+linux/src/Makefile
+linux/src/Makefile.in
