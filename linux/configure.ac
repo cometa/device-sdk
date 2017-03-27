@@ -3,6 +3,8 @@
 AC_INIT([libcometa],[1.0],[bug-device-sdk@visiblenergy.com])
 AM_INIT_AUTOMAKE
 
+AC_PREFIX_DEFAULT(/usr)
+
 AC_CONFIG_SRCDIR([src/libcometa.h])
 
 # Checks for programs.
