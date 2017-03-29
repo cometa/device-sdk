@@ -140,7 +140,7 @@ Send a message upstream to the Cometa server.
 
 #### `cometa_bind_cb`
 ```
-cometa_reply cometa_bind_cb(struct cometa *handle, cometa_message_cb cb);
+cometa_reply cometa_bind_cb(struct cometa *handle, cometa_message_cb cb, void *cb_private);
 
 ```
 Bind a callback to a Cometa connection to handle messages received from the server. 
@@ -149,7 +149,8 @@ Bind a callback to a Cometa connection to handle messages received from the serv
 |-----------------------------|-------------------------|---
 |  `handle`  	| Cometa handle      | `const char *` 
 |  `cb`  	| callback function      | `cometa_message_cb` 
- 
+|  `cb_private`	| private context pointer      | `void *`
+
 ```
  typedef char *(*cometa_message_cb)(const int data_size, void *data);
 ```

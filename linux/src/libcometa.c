@@ -2,7 +2,7 @@
  * Cometa is a cloud infrastructure for embedded systems and connected 
  * devices developed by Visible Energy, Inc.
  *
- * Copyright (C) 2013, 2015 Visible Energy, Inc.
+ * Copyright (C) 2013, 2015, 2017 Visible Energy, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,6 +100,7 @@ struct cometa {
     char *app_name;					/* application name */
     char *app_id;					/* application key */
     cometa_message_cb user_cb;		/* message callback */
+    void *user_private;				/* private context pointer for message callback */
     pthread_t	tloop;				/* thread for the receive loop */
     pthread_t	tbeat;				/* thread for the heartbeat */
     pthread_rwlock_t hlock;     	/* lock for heartbeat */
@@ -181,7 +182,7 @@ static int on_body_user_cb(http_parser *p, const char* at, size_t length)
     debug_print("DEBUG: received from server\r\n:%.*s\n", (int)length, at);
 
     if (c->user_cb) {
-        char *response = c->user_cb(length, (char *)at);
+        char *response = c->user_cb(length, (char *)at, c->user_private);
         sprintf(c->sendBuff, "%x\r\n%s\r\n", (int)strlen(response), response);
         debug_print("DEBUG: sending response:\r\n%s\n", c->sendBuff);
     } else {
@@ -761,9 +762,9 @@ cometa_reply cometa_send(struct cometa *handle, const char *buf, const int size)
  *
  */
 cometa_reply 
-cometa_bind_cb(struct cometa *handle, cometa_message_cb cb) {
+cometa_bind_cb(struct cometa *handle, cometa_message_cb cb, void *cb_private) {
 	handle->user_cb = cb;
-	
+	handle->user_private = cb_private;
 	return COMEATAR_OK;
 }
 

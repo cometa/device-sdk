@@ -2,7 +2,7 @@
  * Cometa is a cloud infrastructure for IoT and connected devices
  * developed by Visible Energy, Inc. (www.cometa.io).
  *
- * Copyright (C) 2013, 2015 Visible Energy, Inc.
+ * Copyright (C) 2013, 2015, 2017 Visible Energy, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -130,7 +130,7 @@ processCmd(const char *cmd, char *cmd_output)
  */
 char cmdOutput[MESSAGE_LEN];
 static char *
-message_handler(const int data_len, void *data) 
+message_handler(const int data_len, void *data, void *priv)
 {
 	time_t now;
     struct tm  ts;
@@ -313,7 +313,7 @@ main(int argc, char **argv)
 	/* 
      * Bind the callback for messages received from the application server (via Cometa).
      */
-	ret = cometa_bind_cb(cometa, message_handler);
+	ret = cometa_bind_cb(cometa, message_handler, NULL);
 	if (ret != COMEATAR_OK) {
 		fprintf(stderr, "DEBUG: Error in cometa_bind_cb: %d. Exiting.\r\n", ret);
 		exit(-1);

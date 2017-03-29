@@ -2,7 +2,7 @@
  * Cometa is a cloud infrastructure for embedded systems and connected 
  * devices developed by Visible Energy, Inc.
  *
- * Copyright (C) 2013, 2015 Visible Energy, Inc.
+ * Copyright (C) 2013, 2015, 2017 Visible Energy, Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -107,18 +107,20 @@ cometa_reply cometa_send(struct cometa *handle, const char *buf, const int size)
  *
  * @param	data_size - size of the message
  * @param	data - message
+ * @param	private - private context pointer registered when callback attached
  *
  * @return - the response message to be sent to the application server
  */
-typedef char *(*cometa_message_cb)(const int data_size, void *data);
+typedef char *(*cometa_message_cb)(const int data_size, void *data, void *private);
 
 /*
  * Bind the @cb callback to a message received event from the connection with the specified @handle.
- * The message received by the callback is zero-terminated.
+ * The message received by the callback is zero-terminated. The @cb_private field is an opaque
+ * pointer that can be used to pass private information from the caller into the callback.
  *
  */
 
-cometa_reply cometa_bind_cb(struct cometa *handle, cometa_message_cb cb);
+cometa_reply cometa_bind_cb(struct cometa *handle, cometa_message_cb cb, void *cb_private);
 
 /*
  * Return the last reply error in a function for the connection in @handle.
