@@ -304,7 +304,7 @@ main(int argc, char **argv)
     /* 
      * Attach to cometa. 
      */	
-    cometa = cometa_attach(cometa_application_id, cometa_use_ssl);
+    cometa = cometa_attach(cometa_application_id, cometa_use_ssl, NULL);
 	if (cometa == NULL) {
 		fprintf(stderr, "DEBUG: Error in cometa_attach. Exiting.\r\n");
 		exit(-1);

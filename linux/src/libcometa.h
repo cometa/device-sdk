@@ -77,13 +77,16 @@ typedef enum  {
 cometa_reply cometa_init(const char *device_id,  const char *server_name, const char * server_port, const char *platform);
 
 /* 
- * Attach the device to the application @app_name at the application server. 
+ * Attach the device to the application @app_name at the application server. The
+ * @cafile specifies a file of CA certificates in PEM format, or if NULL it
+ * indicates that just the Cometa build-time CADIR will be used to search for
+ * certificates.
  *
  * @return - the connection handle or NULL in case of error
  *
  */
  
-struct cometa *cometa_attach(const char *app_id, int ssl);
+struct cometa *cometa_attach(const char *app_id, int ssl, const char *cafile);
 
 /*
  * Send a message upstream to the Cometa server. 

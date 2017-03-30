@@ -130,6 +130,7 @@ struct {
 
 /* last used connection */
 struct cometa *conn_save = NULL;
+static char *cafile_save = NULL;
 
 /** Functions definitions **/
 
@@ -302,16 +303,15 @@ err_occured:
     return X509_V_ERR_APPLICATION_VERIFICATION;
 }
 
-#define CAFILE NULL
 #define CADIR "/etc/ssl/certs"
 
 static SSL_CTX *
-setup_client_ctx(void)
+setup_client_ctx(const char *cafile)
 {
     SSL_CTX *ctx;
  
     ctx = SSL_CTX_new(SSLv23_method());
-    if (SSL_CTX_load_verify_locations(ctx, CAFILE, CADIR) != 1)
+    if (SSL_CTX_load_verify_locations(ctx, cafile, CADIR) != 1)
         fprintf(stderr, "ERROR: Error loading CA file and/or directory (verify_locations).\n");
     if (SSL_CTX_set_default_verify_paths(ctx) != 1)
         fprintf(stderr, "Error loading default CA file and/or directory (verify_path).\n");
@@ -365,7 +365,7 @@ send_heartbeat(void *h) {
             debug_print("in send_heartbeat. Reconnecting: n = %d, errno = %d, flag = %d\n\r", (int)n, (int)errno, handle->flag);
             /* attempt to reconnect */
             /* TODO: add a random delay to avoid server flooding when many devices disconnect at the same time */
-            ret_sub = cometa_attach(conn_save->app_id, ssl);
+            ret_sub = cometa_attach(conn_save->app_id, ssl, cafile_save);
             if (ret_sub == NULL) {
                 debug_print("ERROR: attempt to reconnect to the server failed.\n");
             }
@@ -510,7 +510,7 @@ cometa_init(const char *device_id, const char *server_name, const char * server_
  *
  */
 struct cometa *
-cometa_attach(const char *app_id, int ssl) {
+cometa_attach(const char *app_id, int ssl, const char *cafile) {
     http_parser_settings settings;
 
     struct cometa *conn;
@@ -545,6 +545,12 @@ cometa_attach(const char *app_id, int ssl) {
         conn->flag = 0;
         /* save the global connection pointer for re-connecting */
         conn_save = conn;
+        if (cafile) {
+            if (cafile_save) {
+                (void)free(cafile_save);
+            }
+            cafile_save = strdup(cafile);
+        }
     
         /* save the parameters */
         if (app_id)
@@ -554,9 +560,10 @@ cometa_attach(const char *app_id, int ssl) {
         	conn->reply = COMETAR_PAR_ERROR;
             return NULL;		
         }
+
 #ifdef WITH_SSL
         if (ssl)
-            conn->ctx = setup_client_ctx();
+            conn->ctx = setup_client_ctx(cafile);
 #endif
     }
         
@@ -763,8 +770,18 @@ cometa_reply cometa_send(struct cometa *handle, const char *buf, const int size)
  */
 cometa_reply 
 cometa_bind_cb(struct cometa *handle, cometa_message_cb cb, void *cb_private) {
+	int ret;
+
+	if ((ret = pthread_rwlock_wrlock(&handle->hlock)) != 0) {
+            fprintf(stderr,"ERROR: in %s. Failed to get wrlock. ret = %d. Exiting.\r\n",__func__,ret);
+            exit (-1); /* TODO: clean up API to avoid just bailing out */
+        }
+
 	handle->user_cb = cb;
 	handle->user_private = cb_private;
+
+        (void)pthread_rwlock_unlock(&(handle->hlock));
+
 	return COMEATAR_OK;
 }
 

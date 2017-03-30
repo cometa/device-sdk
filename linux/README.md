@@ -108,13 +108,17 @@ Initialize the application to use Cometa and provides the necessary parameters
 
 #### `cometa_attach`
 ```
-struct cometa *cometa_attach(const char *app_id);
+struct cometa *cometa_attach(const char *app_id, int ssl, const char *cafile);
 ``` 
- Subscribe the device to the specified application. The application ID must match one application defined in the `/etc/cometa.conf` file.
+
+ Subscribe the device to the specified application. The application ID must match one application defined in the `/etc/cometa.conf` file. If SSL support is enabled then optionally the cafile can reference a PEM format file containing CA certificates to be used, or NULL if only the default Cometa CADIR path is to be searched.
+
 
 | PARAMETER                   | DESCRIPTION         | TYPE    
 |-----------------------------|---------------------|---
 |  `app_id`  	| application ID      | `const char *` 
+|  `ssl`  	| use SSL boolean     | `int`
+|  `cafile`  	| client supplied CAfile      | `const char *`
 
  @return - the connection handle (pointer to opaque data structure) or NULL in case of error
  
