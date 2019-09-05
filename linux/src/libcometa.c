@@ -60,14 +60,14 @@
 #include "libcometa.h"
 
 /* time difference - replaces timersub() BSD only (<sys/time.h>)*/
-# define timersubtract(a, b, result)						      \
-  do {									      \
-    (result)->tv_sec = (a)->tv_sec - (b)->tv_sec;			      \
-    (result)->tv_usec = (a)->tv_usec - (b)->tv_usec;			      \
-    if ((result)->tv_usec < 0) {					      \
-      --(result)->tv_sec;						      \
-      (result)->tv_usec += 1000000;					      \
-    }									      \
+# define timersubtract(a, b, result)                              \
+  do {                                        \
+    (result)->tv_sec = (a)->tv_sec - (b)->tv_sec;                 \
+    (result)->tv_usec = (a)->tv_usec - (b)->tv_usec;                  \
+    if ((result)->tv_usec < 0) {                          \
+      --(result)->tv_sec;                             \
+      (result)->tv_usec += 1000000;                       \
+    }                                         \
   } while (0)
 
 /** Public structures and constants **/
@@ -93,18 +93,18 @@
  *
  */
 struct cometa {
-    int sockfd;					    /* socket to Cometa server */
-    char recvBuff[MESSAGE_LEN];		/* received buffer */
-    char sendBuff[MESSAGE_LEN];		/* send buffer */
-    int	app_sockfd;					/* socket to the application server */
-    char *app_name;					/* application name */
-    char *app_id;					/* application key */
-    cometa_message_cb user_cb;		/* message callback */
-    pthread_t	tloop;				/* thread for the receive loop */
-    pthread_t	tbeat;				/* thread for the heartbeat */
-    pthread_rwlock_t hlock;     	/* lock for heartbeat */
-    int	hz;							/* heartbeat period in sec */	
-    cometa_reply reply;				/* last reply code */
+    int sockfd;                     /* socket to Cometa server */
+    char recvBuff[MESSAGE_LEN];     /* received buffer */
+    char sendBuff[MESSAGE_LEN];     /* send buffer */
+    int app_sockfd;                 /* socket to the application server */
+    char *app_name;                 /* application name */
+    char *app_id;                   /* application key */
+    cometa_message_cb user_cb;      /* message callback */
+    pthread_t   tloop;              /* thread for the receive loop */
+    pthread_t   tbeat;              /* thread for the heartbeat */
+    pthread_rwlock_t hlock;         /* lock for heartbeat */
+    int hz;                         /* heartbeat period in sec */   
+    cometa_reply reply;             /* last reply code */
     int flag;                       /* disconnection flag */
 
     int state;
@@ -121,10 +121,10 @@ struct cometa {
 
 /* global variable holding this device's identity  */
 struct {
-	char *id;     	/* device id */
+    char *id;       /* device id */
     char *server_name;  /* server FQDN */
     char *server_port;  /* server port */
-	char *info;		/* device platform information */
+    char *info;     /* device platform information */
 } device;
 
 /* last used connection */
@@ -248,22 +248,31 @@ post_connection_check(SSL *ssl, char *host)
             if (!strcmp(extstr, "subjectAltName"))
             {
                 int j;
-                const unsigned char 	*data;
-                STACK_OF(CONF_VALUE) 	*val;
-                CONF_VALUE 				*nval;
+                /*const*/ unsigned char     *data;
+                STACK_OF(CONF_VALUE)    *val;
+                CONF_VALUE              *nval;
                 const X509V3_EXT_METHOD *meth;
-                void 					*ext_str = NULL;
+                void                    *ext_str = NULL;
  
                 if (!(meth = X509V3_EXT_get(ext)))
                     break;
+
+#if (OPENSSL_VERSION_NUMBER  < 0x10000001L)
                 data = ext->value->data;
+#else
+                ASN1_OCTET_STRING* asn1_str = X509_EXTENSION_get_data(ext);
+                data = asn1_str->data;
+#endif
 
 #if (OPENSSL_VERSION_NUMBER > 0x00907000L)
-                if (meth->it)
-                  ext_str = ASN1_item_d2i(NULL, &data, ext->value->length,
-                                          ASN1_ITEM_ptr(meth->it));
-                else
-                  ext_str = meth->d2i(NULL, &data, ext->value->length);
+                if (meth->it) {
+                    ASN1_OCTET_STRING* asn1_str_a = X509_EXTENSION_get_data(ext); 
+                    ext_str = ASN1_item_d2i(NULL, &data, asn1_str_a->length, ASN1_ITEM_ptr(meth->it));
+                }
+                else {
+                    ASN1_OCTET_STRING* asn1_str_a = X509_EXTENSION_get_data(ext); 
+                    ext_str = meth->d2i(NULL, &data, asn1_str_a->length);
+                }
 #else
                 ext_str = meth->d2i(NULL, &data, ext->value->length);
 #endif
@@ -272,7 +281,7 @@ post_connection_check(SSL *ssl, char *host)
                 {
                     nval = sk_CONF_VALUE_value(val, j);
                     if (!strcmp(nval->name, "DNS") &&
-		        (!strcmp(nval->value, host) || fnmatch(nval->value, host, 0)))
+                (!strcmp(nval->value, host) || fnmatch(nval->value, host, 0)))
                     {
                         ok = 1;
                         break;
@@ -331,31 +340,31 @@ setup_client_ctx(void)
  */
 static void *
 send_heartbeat(void *h) {
-	struct cometa *handle, *ret_sub;
+    struct cometa *handle, *ret_sub;
     int ret;
     ssize_t n;
     int ssl = 0;
 
-	handle = (struct cometa *)h;
+    handle = (struct cometa *)h;
 #ifdef WITH_SSL
     ssl = !!handle->ssl;
 #endif
 
     do {
-	    while (usleep(handle->hz * 1000000) == -1 && (errno == EINTR))
-			/* interrupted by a SIGNAL */
-			continue;
+        while (usleep(handle->hz * 1000000) == -1 && (errno == EINTR))
+            /* interrupted by a SIGNAL */
+            continue;
         //usleep(handle->hz * 1000000);
 
-		if ((ret = pthread_rwlock_wrlock(&handle->hlock)) != 0) {
-	        fprintf(stderr, "ERROR: in send_heartbeat. Failed to get wrlock. ret = %d. Exiting.\r\n", ret);
-	        exit (-1);
-	    }
-		debug_print("DEBUG: sending heartbeat.\r\n");
-		/* send a heartbeat */
+        if ((ret = pthread_rwlock_wrlock(&handle->hlock)) != 0) {
+            fprintf(stderr, "ERROR: in send_heartbeat. Failed to get wrlock. ret = %d. Exiting.\r\n", ret);
+            exit (-1);
+        }
+        debug_print("DEBUG: sending heartbeat.\r\n");
+        /* send a heartbeat */
         sprintf(handle->sendBuff, "1\r\n%c\r\n", MSG_HEARTBEAT); 
 
-    	n = cometa_write(handle);
+        n = cometa_write(handle);
         /* check for connection state and reconnection flag */
         if (n <= 0 || handle->flag == 1) { //&& (errno == EPIPE)) {
             pthread_rwlock_unlock(&(handle->hlock));
@@ -370,10 +379,10 @@ send_heartbeat(void *h) {
             }
             continue;
         }
-		pthread_rwlock_unlock(&(handle->hlock));
+        pthread_rwlock_unlock(&(handle->hlock));
 
-	} while (1);
-}	/* send_heartbeat */
+    } while (1);
+}   /* send_heartbeat */
 
 /* 
  * The receive and dispatch loop thread.
@@ -402,8 +411,8 @@ recv_loop(void *h) {
         n -= parse(handle, &settings, n);
         pthread_rwlock_unlock(&(handle->hlock));
     }
-	return NULL;
-}	/* recv_loop */
+    return NULL;
+}   /* recv_loop */
 
 
 /*
@@ -414,24 +423,24 @@ recv_loop(void *h) {
  */
 static int 
 en_connect(void) 
-	{
+    {
     struct addrinfo hints;
-	struct addrinfo *result; 
+    struct addrinfo *result; 
     int n;
     struct sockaddr_in *addr;
     char str[INET_ADDRSTRLEN];
     int sockfd;
-	    
-    /* DNS lookup for Cometa server */	
-	memset(&hints, 0, sizeof hints);   // make sure the struct is empty
-	hints.ai_family = AF_INET;         // don't care IPv4 or IPv6
-	hints.ai_socktype = SOCK_STREAM;   // TCP stream sockets
-	hints.ai_flags = AI_CANONNAME | AI_ADDRCONFIG;     // fill in IP list
+        
+    /* DNS lookup for Cometa server */  
+    memset(&hints, 0, sizeof hints);   // make sure the struct is empty
+    hints.ai_family = AF_INET;         // don't care IPv4 or IPv6
+    hints.ai_socktype = SOCK_STREAM;   // TCP stream sockets
+    hints.ai_flags = AI_CANONNAME | AI_ADDRCONFIG;     // fill in IP list
 
-	if ((n = getaddrinfo(device.server_name, device.server_port, &hints, &result)) != 0) {
-		fprintf(stderr, "ERROR : getaddrinfo() could not get server name %s resolved (%s).\r\n", device.server_name, gai_strerror(n));
-	    return -1;
-	}
+    if ((n = getaddrinfo(device.server_name, device.server_port, &hints, &result)) != 0) {
+        fprintf(stderr, "ERROR : getaddrinfo() could not get server name %s resolved (%s).\r\n", device.server_name, gai_strerror(n));
+        return -1;
+    }
 
     addr = (struct sockaddr_in *)result->ai_addr;
     inet_ntop(AF_INET, &addr->sin_addr, str, sizeof str);
@@ -450,7 +459,7 @@ en_connect(void)
     }   
     freeaddrinfo(result);
 
-	/* return the socket */
+    /* return the socket */
     return sockfd;
 }   /* en_connect */
 
@@ -459,27 +468,26 @@ en_connect(void)
  *
  * @param server_name - the Cometa server FQDN
  * @param server_port - the Cometa server port
- * @param device_id	- the id of the device to connect
+ * @param device_id - the id of the device to connect
  * @param platform - an (optional) platform description  
  *
  */
 cometa_reply
-cometa_init(const char *device_id, const char *server_name, const char * server_port, const char *platform)
-{
+cometa_init(const char *device_id, const char *server_name, const char * server_port, const char *platform) {
     if (!server_name || !server_port)
         return COMETAR_PAR_ERROR;
-	if (device_id && (strlen(device_id) <= DEVICE_ID_LEN))
-		device.id = strdup(device_id);
-	else
-		return COMETAR_PAR_ERROR;
+    if (device_id && (strlen(device_id) <= DEVICE_ID_LEN))
+        device.id = strdup(device_id);
+    else
+        return COMETAR_PAR_ERROR;
 
     device.server_name = (char *)server_name;
     device.server_port = (char *)server_port;
-	if (platform) {
-		device.info = strdup(platform);
+    if (platform) {
+        device.info = strdup(platform);
     }
-	else
-		device.info = NULL;
+    else
+        device.info = NULL;
         
 #ifdef WITH_SSL
     if (!SSL_library_init()) {
@@ -489,12 +497,12 @@ cometa_init(const char *device_id, const char *server_name, const char * server_
     SSL_load_error_strings();
     RAND_load_file("/dev/urandom", 1024);
 #endif
-    	
+        
     /* ignore SIGPIPE and handle socket write errors inline  */
     signal(SIGPIPE, SIG_IGN);
 
-	return COMEATAR_OK;
-}	/* cometa_init */
+    return COMEATAR_OK;
+}   /* cometa_init */
 
 
 /* 
@@ -505,7 +513,7 @@ cometa_init(const char *device_id, const char *server_name, const char * server_
  *
  * @info  Authentication is done using the app_id (one-way authentication).
  *
- * @return	- the connection handle
+ * @return  - the connection handle
  *
  */
 struct cometa *
@@ -524,7 +532,7 @@ cometa_attach(const char *app_id, int ssl) {
     if (ssl)
         return NULL;
 #endif
-	
+    
     /* check when called for reconnecting */
     if (conn_save != NULL) {
         fprintf(stderr, "in cometa_attach: reconnecting\r\n");
@@ -547,11 +555,11 @@ cometa_attach(const char *app_id, int ssl) {
     
         /* save the parameters */
         if (app_id)
-        	conn->app_id = strdup(app_id);
+            conn->app_id = strdup(app_id);
         else {
-        	fprintf(stderr, "ERROR : Parameter error (app_id)\r\n");
-        	conn->reply = COMETAR_PAR_ERROR;
-            return NULL;		
+            fprintf(stderr, "ERROR : Parameter error (app_id)\r\n");
+            conn->reply = COMETAR_PAR_ERROR;
+            return NULL;        
         }
 #ifdef WITH_SSL
         if (ssl)
@@ -622,7 +630,7 @@ cometa_attach(const char *app_id, int ssl) {
     n = cometa_write(conn);
     if (n <= 0)  {
         fprintf(stderr, "ERROR: writing to cometa server socket.\r\n");
-		conn->reply = COMEATAR_NET_ERROR;
+        conn->reply = COMEATAR_NET_ERROR;
         return NULL;
     }
 
@@ -649,55 +657,55 @@ cometa_attach(const char *app_id, int ssl) {
     debug_print("DEBUG: received (%zd):\r\n%s\n", strlen(conn->recvBuff), conn->recvBuff);
 
     /* 
-	 * A JSON object is returned by the Cometa server:
-	 * 	 success:{ "msg": "200 OK", "heartbeat": 60, "time": 142334566 } 
-	 * 	 failed: { "msg": "403 Forbidden" }
-	 */
-	if (conn->parser.status_code != 200) {
-		conn->reply = COMETAR_AUTH_ERROR;
-		return NULL;
-	} 
+     * A JSON object is returned by the Cometa server:
+     *   success:{ "msg": "200 OK", "heartbeat": 60, "time": 142334566 } 
+     *   failed: { "msg": "403 Forbidden" }
+     */
+    if (conn->parser.status_code != 200) {
+        conn->reply = COMETAR_AUTH_ERROR;
+        return NULL;
+    } 
 
-	/* TODO: extract heartbeat from response */
-	conn->hz = 60;	/* default to 1 min */
-	
+    /* TODO: extract heartbeat from response */
+    conn->hz = 60;  /* default to 1 min */
+    
     /* device authentication handshake complete */
     /* ----------------------------------------------------------------------------------------------- */
-	
+    
     debug_print("DEBUG: device attach complete.\r\n");
     
     /* initialize and set thread detached attribute */ 
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     /* 
-	 * start the receive and heartbeat threads if it is not a reconnection
-	 */    
+     * start the receive and heartbeat threads if it is not a reconnection
+     */    
     if ((conn->tloop == 0) && (conn->tbeat == 0))  {
-    	pthread_rwlock_init(&(conn->hlock),NULL);
-    	/* start the receive loop */
-    	if (pthread_create(&conn->tloop, &attr, recv_loop, (void *)conn)) {
-    		fprintf(stderr, "ERROR: Failed to create main loop thread. Exiting.\r\n");
-    		exit(-1);
-    	}
+        pthread_rwlock_init(&(conn->hlock),NULL);
+        /* start the receive loop */
+        if (pthread_create(&conn->tloop, &attr, recv_loop, (void *)conn)) {
+            fprintf(stderr, "ERROR: Failed to create main loop thread. Exiting.\r\n");
+            exit(-1);
+        }
        
-    	/* start the heartbeat loop */
-    	if (pthread_create(&conn->tbeat, &attr, send_heartbeat, (void *)conn)) {
-    		fprintf(stderr, "ERROR: Failed to create heartbeat thread. Exiting.\r\n");
-    		exit(-1);
-    	}
+        /* start the heartbeat loop */
+        if (pthread_create(&conn->tbeat, &attr, send_heartbeat, (void *)conn)) {
+            fprintf(stderr, "ERROR: Failed to create heartbeat thread. Exiting.\r\n");
+            exit(-1);
+        }
     } else {
         /* start a new receive loop thread: needed because it is now a new server and a new socket */
         if (pthread_create(&conn->tloop, &attr, recv_loop, (void *)conn)) {
-    		fprintf(stderr, "ERROR: Failed to create main loop thread. Exiting.\r\n");
-    		exit(-1);
-    	} else
+            fprintf(stderr, "ERROR: Failed to create main loop thread. Exiting.\r\n");
+            exit(-1);
+        } else
             debug_print("DEBUG: Restarted receive loop.\r");
     }
     pthread_attr_destroy(&attr);
 
-	conn->reply = COMEATAR_OK;
-	return conn;
-}	/* cometa_subscribe */
+    conn->reply = COMEATAR_OK;
+    return conn;
+}   /* cometa_subscribe */
 
 /*
  * Send a message upstream to the Cometa server. 
@@ -725,9 +733,9 @@ cometa_reply cometa_send(struct cometa *handle, const char *buf, const int size)
         /* message too large */
         return COMETAR_PAR_ERROR;
     }
-	debug_print("DEBUG: sending message upstream.\r\n");
-	
-	/* The device uses the MSG_UPSTREAM message marker in the first character to indicate  */
+    debug_print("DEBUG: sending message upstream.\r\n");
+    
+    /* The device uses the MSG_UPSTREAM message marker in the first character to indicate  */
     /* an upstream message that is not a response to a publish request. */
     
     /* build the message with the data-chunk length in hex*/
@@ -753,7 +761,7 @@ cometa_reply cometa_send(struct cometa *handle, const char *buf, const int size)
         return COMEATAR_NET_ERROR;    
     }
 
-	return COMEATAR_OK;
+    return COMEATAR_OK;
 }   /* cometa_send */
 
 /*
@@ -762,9 +770,9 @@ cometa_reply cometa_send(struct cometa *handle, const char *buf, const int size)
  */
 cometa_reply 
 cometa_bind_cb(struct cometa *handle, cometa_message_cb cb) {
-	handle->user_cb = cb;
-	
-	return COMEATAR_OK;
+    handle->user_cb = cb;
+    
+    return COMEATAR_OK;
 }
 
 /*
@@ -772,5 +780,5 @@ cometa_bind_cb(struct cometa *handle, cometa_message_cb cb) {
  */
 cometa_reply
 cometa_error(struct cometa *handle) {
-	return handle->reply;
+    return handle->reply;
 }
